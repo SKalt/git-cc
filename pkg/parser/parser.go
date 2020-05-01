@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ type ParserResult struct {
 }
 type ParserCallback func([]rune) interface{}
 type Parser func([]rune) (ParserResult, error)
+type void struct{}
 
 func ident(input []rune) interface{} {
 	return []rune(input)
@@ -97,12 +98,7 @@ func Tag(tag interface{}) Parser {
 	}
 }
 
-// func MatchingString(str string, callback ParserCallback) Parser {
-// 	var toMatch = []rune(str)
-
-// }
-
-func AnyOf(parsers ...Parser) Parser {
+func Any(parsers ...Parser) Parser {
 	return func(input []rune) (ParserResult, error) {
 		for _, parser := range parsers {
 			result, err := parser(input)
@@ -114,14 +110,31 @@ func AnyOf(parsers ...Parser) Parser {
 	}
 }
 
+func OneOfTheseRunes(str string) Parser {
+	set := make(map[rune]void)
+	var present void
+	for _, char := range []rune(str) {
+		set[char] = present
+	}
+	parsers := make([]Parser, len(set))
+	for char := range set {
+		parsers = append(parsers, LiteralRune(char, ident))
+	}
+	return Any(parsers...)
+}
+
 func asString(result []rune) interface{} {
 	return string(result)
 }
-
+func clone(input []rune) []rune {
+	cloned := []rune{}
+	copy(cloned, input)
+	return cloned
+}
 func Sequence(parsers ...Parser) Parser {
 	return func(input []rune) (ParserResult, error) {
 		var currentInput = []rune{}
-		results := make([]interface{}, len(currentInput))
+		results := make([]interface{}, len(parsers))
 		copy(currentInput, input)
 		for _, parser := range parsers {
 			result, err := parser(currentInput)
@@ -147,10 +160,37 @@ func Delimeted(start Parser, middle Parser, end Parser) Parser {
 	}
 }
 
-var CommitType = AnyOf(Tag("feat"), Tag("fix"))
+func Many0(parser Parser) Parser {
+	return func(input []rune) (ParserResult, error) {
+		i := 0
+		results := make([]interface{}, len(input))
+		for i < len(input) { // the highest possible # of times callable
+			result, err := parser(input[i:])
+			if err != nil {
+				break
+			}
+			results = append(results, result.Output)
+			i += len(result.Remaining)
+		}
+		return ParserResult{results, input[i:]}, nil
+	}
+}
+func Many1(parser Parser) Parser {
+	return func(input []rune) (ParserResult, error) {
+		result, _ := Many0(parser)(input)
+		resultArr := result.Output.([]interface{})
+		if len(resultArr) == 0 {
+			return result, fmt.Errorf("no results")
+		} else {
+			return result, nil
+		}
+	}
+}
+
+var CommitType = Any(Tag("feat"), Tag("fix"))
 var Scope = Delimeted(
 	Tag('('),
-	NotMatching(Tag(')')),
+	NotMatching(Any(OneOfTheseRunes(")\n\r"))),
 	Tag(')'),
 )
 var BreakingChangeBang = Tag("!")
