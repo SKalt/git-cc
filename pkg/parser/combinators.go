@@ -25,22 +25,30 @@ import (
 // 	return []rune((*r.Original)[r.Range[1]:])
 // }
 
-// type ParserIdea func( /*input*/ *string, int /*rune start index*/) (ResultIdea, error)
+// type ParserIdea func( /*input*/ *string, int /*rune start index*/) (*ResultIdea, error)
 
-type ParserResult struct {
-	Output    interface{}
+type Result struct {
+	Children  []Result
+	Value     string
+	Type      string
 	Remaining []rune
 }
-type ParserCallback func([]rune) interface{}
-type Parser func([]rune) (ParserResult, error)
-type void struct{}
 
-func ident(input []rune) interface{} {
-	return []rune(input)
+func (r *Result) CopyTyped(name string) *Result {
+	return &Result{
+		Children:  r.Children,
+		Remaining: r.Remaining,
+		Value:     r.Value,
+		Type:      name,
+	}
 }
 
+type ParserCallback func([]rune) interface{}
+type Parser func([]rune) (*Result, error)
+type void struct{}
+
 func LastRuneOf(parser Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
+	return func(input []rune) (*Result, error) {
 		maxIndex := len(input) - 1
 		if maxIndex < 0 {
 			return parser([]rune{})
@@ -51,46 +59,80 @@ func LastRuneOf(parser Parser) Parser {
 	}
 }
 
-func TakeUntil(parser Parser, callback ParserCallback) Parser {
-	return func(input []rune) (ParserResult, error) {
-		for i, char := range input {
-			_, err := parser([]rune{char})
+func TakeUntil(parser Parser) Parser {
+	return func(input []rune) (*Result, error) {
+		for i := range input {
+			_, err := parser(input[i:])
 			if err == nil {
-				return ParserResult{callback(input[:i]), input[i:]}, nil
+				return &Result{
+					Value:     string(input[:i]),
+					Remaining: input[i:],
+				}, nil
 			}
 		}
-		return ParserResult{nil, input}, fmt.Errorf("didn't match parser")
+		_, err := parser([]rune{})
+		if err == nil {
+			return &Result{
+				Value:     string(input),
+				Remaining: []rune{},
+			}, nil
+		}
+		return nil, fmt.Errorf("didn't match parser")
+	}
+}
+
+func Marked(mark string) func(Parser) Parser {
+	if len(mark) == 0 {
+		panic("empty mark")
+	}
+	return func(parser Parser) Parser {
+		return func(input []rune) (*Result, error) {
+			result, err := parser(input)
+			if err != nil {
+				return nil, err
+			} else {
+				return result.CopyTyped(mark), nil
+			}
+		}
+		//
 	}
 }
 
 func Opt(parser Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
-		result, _ := parser(input)
+	return func(input []rune) (*Result, error) {
+		result, err := parser(input)
+		if err == nil {
+			return result, nil
+		}
+		result = &Result{Remaining: input}
 		return result, nil
 	}
 }
 
-func LiteralRune(match rune, callback ParserCallback) Parser {
-	return func(input []rune) (ParserResult, error) {
+func LiteralRune(match rune) Parser {
+	return func(input []rune) (*Result, error) {
 		if len(input) > 0 {
 			if input[0] == match {
-				return ParserResult{callback([]rune{match}), input[1:]}, nil
+				return &Result{
+					Value:     string(match),
+					Remaining: input[1:],
+				}, nil
 			} else {
-				return ParserResult{nil, input}, fmt.Errorf("%v not matched", match)
+				return nil, fmt.Errorf("%v not matched", match)
 			}
 		} else {
-			return ParserResult{nil, input}, fmt.Errorf("no input")
+			return nil, fmt.Errorf("no input")
 		}
 	}
 }
 
 func Not(parser Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
+	return func(input []rune) (*Result, error) {
 		result, err := parser(input)
 		if err == nil {
 			return result, nil
 		} else {
-			return ParserResult{nil, input}, fmt.Errorf("wasn't expecting to match %v", parser)
+			return nil, fmt.Errorf("wasn't expecting to match %v", parser)
 		}
 	}
 }
@@ -111,44 +153,48 @@ func toRunes(i interface{}) []rune {
 	}
 }
 
-func Tag(tag interface{}) Parser {
-	toMatch := toRunes(tag)
-	return func(input []rune) (ParserResult, error) {
+func Tag(tag string) Parser {
+	toMatch := []rune(tag)
+	return func(input []rune) (*Result, error) {
 		if len(toMatch) > len(input) {
-			return ParserResult{nil, input}, fmt.Errorf("input longer than tag")
+			return nil, fmt.Errorf("input longer than tag")
 		}
 		for i, matching := range toMatch {
 			if input[i] != matching {
 				err := fmt.Errorf(
-					"\"%v\" does not match \"%v\"",
+					"`%v` does not match `%v`",
 					string(input[:i+1]),
 					string(toMatch),
 				)
-				return ParserResult{nil, input}, err
+				return nil, err
 			}
 		}
-		return ParserResult{string(toMatch), input[len(toMatch):]}, nil
+		return &Result{
+			Value: string(toMatch), Remaining: input[len(toMatch):],
+		}, nil
 	}
 }
 
 func Any(parsers ...Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
+	return func(input []rune) (*Result, error) {
 		for _, parser := range parsers {
 			result, err := parser(input)
 			if err == nil {
 				return result, err
 			}
 		}
-		return ParserResult{nil, input}, fmt.Errorf("expected a parser to match")
+		return nil, fmt.Errorf("expected a parser to match")
 	}
 }
-func Empty(input []rune) (ParserResult, error) {
+
+func Empty(input []rune) (*Result, error) {
 	if len(input) == 0 {
-		return ParserResult{nil, input}, nil
+		return nil, nil
 	} else {
-		return ParserResult{nil, input}, fmt.Errorf("Not the end")
+		return nil, fmt.Errorf("Not the end")
 	}
 }
+
 func OneOfTheseRunes(str string) Parser {
 	set := make(map[rune]void)
 	var present void
@@ -157,7 +203,7 @@ func OneOfTheseRunes(str string) Parser {
 	}
 	parsers := make([]Parser, len(set))
 	for char := range set {
-		parsers = append(parsers, LiteralRune(char, ident))
+		parsers = append(parsers, LiteralRune(char))
 	}
 	return Any(parsers...)
 }
@@ -172,54 +218,68 @@ func clone(input []rune) []rune {
 }
 
 func Sequence(parsers ...Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
-		var currentInput = []rune{}
-		results := make([]interface{}, len(parsers))
+	return func(input []rune) (*Result, error) {
+		var currentInput = make([]rune, len(input))
+		children := make([]Result, len(parsers))
 		copy(currentInput, input)
-		for _, parser := range parsers {
+		for i, parser := range parsers {
 			result, err := parser(currentInput)
 			if err != nil {
-				return ParserResult{nil, input}, err
+				return nil, err
 			} else {
 				currentInput = result.Remaining
-				results = append(results, result.Output)
+				if len(result.Value)+len(result.Type) > 0 {
+					children[i] = *result
+				}
 			}
 		}
-		return ParserResult{results, currentInput}, nil
+		value := ""
+		for i := range children {
+			value = value + children[i].Value
+		}
+		return &Result{
+			Children:  children,
+			Value:     value,
+			Remaining: currentInput,
+		}, nil
 	}
 }
 func Delimeted(start Parser, middle Parser, end Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
+	return func(input []rune) (*Result, error) {
 		result, err := Sequence(start, middle, end)(input)
 		if err != nil {
-			return ParserResult{nil, input}, err
+			return nil, err
 		}
-		results, _ := result.Output.([]string)
-		return ParserResult{results[1], result.Remaining}, nil
+
+		return &Result{
+			Value:     result.Children[1].Value,
+			Remaining: result.Remaining,
+		}, nil
 	}
 }
 func Many0(parser Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
+	return func(input []rune) (*Result, error) {
 		i := 0
-		results := make([]interface{}, len(input))
-		for i < len(input) { // the highest possible # of times callable
+		results := []Result{}
+		for { // the highest possible # of times callable
 			result, err := parser(input[i:])
 			if err != nil {
 				break
 			}
-			results = append(results, result.Output)
-			i += len(result.Remaining)
+			results = append(results, *result)
+			if len(result.Remaining) == 0 {
+				break
+			}
 		}
-		return ParserResult{results, input[i:]}, nil
+		return &Result{Children: results, Remaining: input[i:]}, nil
 	}
 }
 
 func Many1(parser Parser) Parser {
-	return func(input []rune) (ParserResult, error) {
+	return func(input []rune) (*Result, error) {
 		result, _ := Many0(parser)(input)
-		resultArr := result.Output.([]interface{})
-		if len(resultArr) == 0 {
-			return result, fmt.Errorf("no results")
+		if len(result.Children) == 0 {
+			return nil, fmt.Errorf("no results")
 		} else {
 			return result, nil
 		}
@@ -228,17 +288,20 @@ func Many1(parser Parser) Parser {
 
 func Regex(pattern string) Parser {
 	re := regexp.MustCompile(`^` + pattern) // should be from the start of the bytes
-	return func(input []rune) (ParserResult, error) {
+	return func(input []rune) (*Result, error) {
 		b := []byte(string(input))
 		result := re.FindIndex(b) //Match(b)
 		if result == nil {        // no match found
-			return ParserResult{nil, input}, fmt.Errorf("no match for /%s/", pattern)
+			return nil, fmt.Errorf("no match for /%s/", pattern)
 		} else {
 			// a rune can be multiple bytes, so convert the reult back to runes
 			startByte := result[0]
 			endByte := result[1]
 			endRune := len([]rune(string(b[startByte:endByte])))
-			return ParserResult{input[:endRune], input[endRune:]}, nil
+			return &Result{
+				Value:     string(input[:endRune]),
+				Remaining: input[endRune:],
+			}, nil
 		}
 	}
 }
