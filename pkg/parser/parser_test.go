@@ -11,7 +11,7 @@ func TestParsingCommitTypes(t *testing.T) {
 		expected string,
 		remainder string,
 	) func(t *testing.T) {
-		result, err := CommitType([]rune(input))
+		result, err := CommitType()([]rune(input))
 		return func(t *testing.T) {
 			if err != nil {
 				fmt.Printf("%v", err)
@@ -47,7 +47,7 @@ func TestParsingCommitTypes(t *testing.T) {
 		testExpectedMatch("fixing", "fix", "ing"),
 	)
 	t.Run("rejects invalid commit types", func(t *testing.T) {
-		_, err := CommitType([]rune("foo"))
+		_, err := CommitType()([]rune("foo"))
 		if err == nil {
 			t.Fail()
 		}
@@ -58,11 +58,10 @@ func TestTakeUntil(t *testing.T) {
 	var callback = func(chars []rune) interface{} {
 		return string(chars)
 	}
-	var test = func(input string, until rune, output string, remaining string) func(t *testing.T) {
+	var test = func(input string, until Parser, output string, remaining string) func(t *testing.T) {
 		return func(t *testing.T) {
 			result, err := TakeUntil(until, callback)([]rune(input))
 			if err != nil {
-				fmt.Println("err != nil")
 				t.Fail()
 			}
 			if result.Output != output {
@@ -77,14 +76,41 @@ func TestTakeUntil(t *testing.T) {
 	}
 	t.Run(
 		"matching in the middle of the input works",
-		test("abcdef", 'c' /* output: */, "ab" /* remaining: */, "cdef"),
+		test("abcdef", LiteralRune('c', callback) /* output: */, "ab" /* remaining: */, "cdef"),
 	)
 	t.Run(
 		"matching at the start of the input works",
-		test("abcdef", 'a' /* output: */, "" /* remaining: */, "abcdef"),
+		test("abcdef", LiteralRune('a', callback) /* output: */, "" /* remaining: */, "abcdef"),
 	)
 	t.Run(
 		"matching at the end of the input works",
-		test("abcdef", 'f' /* output: */, "abcde" /* remaining: */, "f"),
+		test("abcdef", LiteralRune('f', callback) /* output: */, "abcde" /* remaining: */, "f"),
 	)
 }
+
+// these test cases are copied from https://www.conventionalcommits.org/en/v1.0.0/, which is licensed under
+// CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/).  I've added escape sequences to record then as go multiline string literals.
+var validCCwithBreakingChangeFooter = `feat: allow provided config object to extend other configs
+
+BREAKING CHANGE: ` + "`extends`" + ` key in config file is now used for extending other config files
+`
+var validCCWithBreakingChangeBang = `refactor!: drop support for Node 6`
+var validCCwithBothBreakingChangeBangAndFooter = `refactor!: drop support for Node 6
+
+BREAKING CHANGE: refactor to use JavaScript features not available in Node 6.
+
+`
+var validCCWithOnlyDescription = `docs: correct spelling of CHANGELOG`
+var validCCWithScope = `feat(lang): add polish language`
+var validCCWithFooters = `fix: correct minor typos in code
+
+see the issue for details
+
+on typos fixed.
+
+Reviewed-by: Z
+Refs #133`
+
+var validCCreversion = `revert: let us never again speak of the noodle incident
+
+Refs: 676104e, a215868`
