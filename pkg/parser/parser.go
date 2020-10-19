@@ -66,15 +66,16 @@ func ParseHead(head []rune) (*CCHeader, error) {
 	if ctxErr != nil {
 		return &header, ctxErr
 	}
-	switch true {
-	case len(ctx.Children) > 0:
-		header.Type = ctx.Children[0].Value
-	case len(ctx.Children) > 1:
-		header.Scope = ctx.Children[1].Value
-	case len(ctx.Children) > 2:
-		header.BreakingChange = ctx.Children[2].Type == "BreakingChangeBang"
+	for _, child := range ctx.Children {
+		switch child.Type {
+		case "BreakingChangeBang":
+			header.BreakingChange = true
+		case "Scope":
+			header.Scope = child.Value
+		case "CommitType":
+			header.Type = child.Value
+		}
 	}
-	//
 	desc, descErr := Sequence(ColonSep, TakeUntil(Empty))(ctx.Remaining)
 	if descErr == nil {
 		header.Description = desc.Children[1].Value
@@ -82,16 +83,16 @@ func ParseHead(head []rune) (*CCHeader, error) {
 	return &header, descErr
 }
 
-var BreakingChange = Tag("BREAKING CHANGE: ")
+var BreakingChange = Tag("BREAKING CHANGE")
 
 var KebabWord = Regex(`[\w-]+`)
-var FooterPrefix = Any(
-	BreakingChange,
+var FooterToken = Any(
+	Marked("BreakingChange")(Sequence(BreakingChange, ColonSep)),
 	Sequence(KebabWord, Any(ColonSep, Tag(" #"))),
 )
 
-var Body = Sequence(Newline, TakeUntil(Any(Empty, FooterPrefix)))
-var Footer = Sequence(FooterPrefix, TakeUntil(Any(Empty, FooterPrefix)))
+var Body = Sequence(Newline, TakeUntil(Any(Empty, FooterToken)))
+var Footer = Sequence(FooterToken, TakeUntil(Any(Empty, FooterToken)))
 var Footers = Many0(Footer)
 
 func ParseRest(input []rune) (*CCRest, error) {
@@ -107,12 +108,12 @@ func ParseRest(input []rune) (*CCRest, error) {
 	}
 	footers := make([]string, len(result.Children))
 	breakingChange := false
-	for i := range result.Children {
-		child := result.Children[i]
-		if child.Type == "BreakingChange" {
+	for i, footer := range result.Children {
+		token := footer.Children[0]
+		if token.Type == "BreakingChange" {
 			breakingChange = true
 		}
-		footers[i] = child.Value
+		footers[i] = footer.Value
 	}
 	rest.BreakingChange = breakingChange
 	rest.Footers = footers
@@ -146,12 +147,14 @@ func ParseCC(fullCommit string) (*CC, error) {
 	cc.Scope = header.Scope
 	cc.BreakingChange = header.BreakingChange
 	otherLines = strings.TrimRight(otherLines, "\n\r\t ")
-	rest, restErr := ParseRest([]rune(otherLines))
-	if restErr != nil {
-		panic(restErr)
+	if len(otherLines) > 0 {
+		rest, restErr := ParseRest([]rune(otherLines))
+		if restErr != nil {
+			panic(restErr)
+		}
+		cc.Body = rest.Body
+		cc.Footers = rest.Footers
+		cc.BreakingChange = cc.BreakingChange || rest.BreakingChange
 	}
-	cc.Body = rest.Body
-	cc.Footers = rest.Footers
-	cc.BreakingChange = cc.BreakingChange || rest.BreakingChange
 	return cc, nil
 }

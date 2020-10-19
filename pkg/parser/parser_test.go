@@ -17,7 +17,7 @@ var validCCwithBothBreakingChangeBangAndFooter = `refactor!: drop support for No
 BREAKING CHANGE: refactor to use JavaScript features not available in Node 6.
 
 `
-var validCCWithOnlyDescription = `docs: correct spelling of CHANGELOG`
+var validCCWithOnlyHeader = `docs: correct spelling of CHANGELOG`
 var validCCWithScope = `feat(lang): add polish language`
 var validCCWithFooters = `fix: correct minor typos in code
 
@@ -144,41 +144,106 @@ func TestParsingFullCommit(t *testing.T) {
 				t.FailNow()
 			}
 			if actual.Type != expected.Type {
-				fmt.Printf("expected: %+v actual: %+v", expected.Type, actual.Type)
+				fmt.Printf("Type: expected: %+v actual: %+v\n", expected.Type, actual.Type)
 				t.FailNow()
 			}
 			if actual.Scope != expected.Scope {
-				fmt.Printf("expected: %+v actual: %+v", expected.Type, actual.Type)
+				fmt.Printf("Scope: expected: %+v actual: %+v\n", expected.Type, actual.Type)
 				t.FailNow()
 			}
 			if actual.BreakingChange != expected.BreakingChange {
-				fmt.Printf("expected: %+v actual: %+v", expected.BreakingChange, actual.BreakingChange)
+				fmt.Printf("BreakingChange: expected: %+v actual: %+v\n", expected.BreakingChange, actual.BreakingChange)
 				t.FailNow()
 			}
 			if actual.Body != expected.Body {
-				fmt.Printf("expected: %+v actual: %+v", expected.Body, actual.Body)
+				fmt.Printf("Body: expected: `%+v`\nactual: `%+v`\n", expected.Body, actual.Body)
 				t.FailNow()
 			}
 			if len(actual.Footers) != len(expected.Footers) {
-				fmt.Printf("expected: %+v actual: %+v", expected.Footers, actual.Footers)
+				fmt.Printf("Footers: expected: %+v actual: %+v\n", expected.Footers, actual.Footers)
 				t.FailNow()
 			}
 			for i := range actual.Footers {
 				if actual.Footers[i] != expected.Footers[i] {
-					fmt.Printf("expected: '%+v' actual: '%+v'", expected.Footers[i], actual.Footers[i])
+					fmt.Printf("expected: '%+v' actual: '%+v'\n", expected.Footers[i], actual.Footers[i])
 					t.FailNow()
 				}
 			}
 		}
 	}
-	t.Run("can parse a valid cc with a breaking change footer",
-		test(validCCwithBreakingChangeFooter, CC{
-			Type:        "feat",
-			Scope:       "",
-			Description: "allow provided config object to extend other configs",
-			Body:        "",
-			Footers: []string{
-				"BREAKING CHANGE: `extends` key in config file is now used for extending other config files",
-			},
-		}))
+	prefix := "can parse a valid cc with "
+	t.Run(prefix+"breaking change footer", test(validCCwithBreakingChangeFooter, CC{
+		Type:           "feat",
+		Scope:          "",
+		Description:    "allow provided config object to extend other configs",
+		Body:           "",
+		BreakingChange: true,
+		Footers: []string{
+			"BREAKING CHANGE: `extends` key in config file is now used for extending other config files",
+		},
+	}))
+	t.Run(prefix+"a bang", test(validCCWithBreakingChangeBang, CC{
+		Type:           "refactor",
+		Scope:          "",
+		Description:    "drop support for node 6",
+		Body:           "",
+		BreakingChange: true,
+	}))
+	t.Run(prefix+"both a bang and a breaking change footer", test(validCCwithBothBreakingChangeBangAndFooter, CC{
+		Type:           "refactor",
+		Scope:          "",
+		Description:    "drop support for Node 6",
+		BreakingChange: true,
+		Body:           "",
+		Footers: []string{
+			"BREAKING CHANGE: refactor to use JavaScript features not available in Node 6.",
+		},
+	}))
+	t.Run(prefix+"only a header", test(validCCWithOnlyHeader, CC{
+		Type:           "docs",
+		Scope:          "",
+		Description:    "correct spelling of CHANGELOG",
+		Body:           "",
+		Footers:        []string{},
+		BreakingChange: false,
+	}))
+	t.Run(prefix+"no body or footers but a scope", test(validCCWithScope, CC{
+		Type:           "feat",
+		Scope:          "lang",
+		Description:    "add polish language",
+		Body:           "",
+		Footers:        []string{},
+		BreakingChange: false,
+	}))
+	t.Run(prefix+"footers", test(validCCWithFooters, CC{
+		Type:        "fix",
+		Scope:       "",
+		Description: "correct minor typos in code",
+		Body: `see the issue for details
+
+on typos fixed.
+
+`,
+		Footers: []string{
+			"Reviewed-by: Z\n",
+			"Refs #133"},
+		BreakingChange: false,
+	}))
+	t.Run(prefix+"reversion", test(validCCreversion, CC{
+		Type:           "revert",
+		Scope:          "",
+		Description:    "let us never again speak of the noodle incident",
+		Body:           "",
+		Footers:        []string{"Refs: 676104e, a215868"},
+		BreakingChange: false,
+	}))
+	// // template:
+	// t.Run(prefix+"", test(,CC{
+	//     Type:        "",
+	//     Scope:       "",
+	//     Description: "",
+	//     Body:        "",
+	//     Footers:     []string{},
+	//     BreakingChange: false,
+	// }))
 }

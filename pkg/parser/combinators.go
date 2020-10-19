@@ -259,19 +259,21 @@ func Delimeted(start Parser, middle Parser, end Parser) Parser {
 }
 func Many0(parser Parser) Parser {
 	return func(input []rune) (*Result, error) {
-		i := 0
+		window := make([]rune, len(input))
+		copy(window, input)
 		results := []Result{}
-		for { // the highest possible # of times callable
-			result, err := parser(input[i:])
+		for range input { // the highest possible # of times callable
+			result, err := parser(window)
 			if err != nil {
 				break
 			}
 			results = append(results, *result)
+			window = result.Remaining
 			if len(result.Remaining) == 0 {
 				break
 			}
 		}
-		return &Result{Children: results, Remaining: input[i:]}, nil
+		return &Result{Children: results, Remaining: window}, nil
 	}
 }
 
