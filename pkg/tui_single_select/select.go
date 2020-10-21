@@ -118,7 +118,6 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		model.Height = msg.Height
 		model.Width = msg.Width
-		fmt.Printf("%d x %d ", msg.Width, msg.Height)
 		return model, cmd
 	}
 	return model, cmd

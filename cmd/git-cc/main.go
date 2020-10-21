@@ -5,42 +5,15 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/skalt/git-cc/pkg/config"
 	input "github.com/skalt/git-cc/pkg/tui_single_select"
 )
 
-// TODO: move to cfg
-var commitTypes = [...]string{ // ordered in terms of frequency ?
-	"feat",
-	"fix",
-	"docs",
-	"chore",
-	"style",
-	"refactor",
-	"perf",
-	"test",
-	"build",
-	"ci",
-	"revert",
-}
-var commitTypePrompts = map[string]string{
-	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
-	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
-	"feat":     "adds a new feature",
-	"fix":      "fixes a bug",
-	"docs":     "changes only the documentation",
-	"style":    "changes the style but not the meaning of the code (such as formatting)",
-	"perf":     "improves performance",
-	"test":     "adds or corrects tests",
-	"build":    "changes the build system or external dependencies",
-	"chore":    "changes outside the code, docs, or tests",
-	"ci":       "changes to the Continuous Inegration (CI) system",
-	"refactor": "changes the code without changing behavior",
-	"revert":   "reverts prior changes",
-}
-
 type model struct {
-	choice    chan<- string
-	textInput input.Model
+	commitTypeChoice   chan<- string
+	commitTypeSelector input.Model
+	//
 }
 
 func (m model) Init() tea.Cmd {
@@ -63,25 +36,27 @@ func main() {
 // function that returns the initialize function and is typically how you would
 // pass arguments to a tea.Init function.
 func initialModel(choice chan string) model {
-	hints := []string{}
-	options := []string{}
-	for _, commitType := range commitTypes {
-		options = append(options, commitType)
-		hint := commitTypePrompts[commitType]
-		hints = append(hints, hint)
+	cfg := config.Init()
+	data := config.Lookup(cfg)
+	commitTypes := data.CommitTypes
+	options := make([]string, len(commitTypes))
+	hints := make([]string, len(commitTypes))
+	for i, description := range commitTypes {
+		options[i] = description.Name
+		hints[i] = description.Description
 	}
 	textModel := input.NewModel("   ", options, hints, choice)
 	return model{
-		textInput: textModel,
+		commitTypeSelector: textModel,
 	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	m.textInput, cmd = input.Update(msg, m.textInput)
+	m.commitTypeSelector, cmd = input.Update(msg, m.commitTypeSelector)
 	return m, cmd
 }
 
 func (m model) View() string {
-	return m.textInput.View()
+	return m.commitTypeSelector.View()
 }
