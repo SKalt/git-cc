@@ -10,7 +10,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	_ "github.com/muesli/reflow/ansi"
-	_ "github.com/muesli/reflow/wordwrap"
+	"github.com/muesli/reflow/indent"
+	"github.com/muesli/reflow/padding"
+	"github.com/muesli/reflow/wordwrap"
 	term "github.com/muesli/termenv"
 )
 
@@ -116,35 +118,53 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		model.Height = msg.Height
 		model.Width = msg.Width
-		// TODO: reflow text here!
+		fmt.Printf("%d x %d ", msg.Width, msg.Height)
 		return model, cmd
 	}
 	return model, cmd
 }
 
+func wrapLine(left uint, hint string, right int, style func(string) term.Style) string {
+	lines := strings.SplitN(wordwrap.String(hint, right), "\n", 2)
+	result := style(lines[0]).String()
+	if len(lines) > 1 {
+		result += "\n" + indent.String(style(lines[1]).String(), left)
+	}
+	return result
+}
 func (m Model) View() string {
 	s := strings.Builder{}
 	s.WriteString(textinput.View(m.textInput) + "\n")
-
+	leftGutter := 3 // "   "
+	maxOptLen := m.maxOptLen()
+	leftColumn := (leftGutter + maxOptLen) + 1 // for the space
+	rightColumn := m.Width - leftColumn
 	for i, match := range m.matched {
-		opt := match[0]
-		padding := strings.Repeat(" ", m.maxOptLen()-len(opt))
-		hint := match[1]
+		opt, hint := padding.String(match[0], uint(maxOptLen)), " "+match[1]
 		if m.Cursor == i {
-			s.WriteString(" > " + term.String(opt).Bold().Underline().String())
-			s.WriteString(term.String(padding).Underline().String())
-			s.WriteString(term.String(hint).Underline().String())
+			style := func(str string) term.Style {
+				return term.String(str).Underline()
+			}
+			s.WriteString(" > " + style(opt).Bold().String())
+			s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style))
 		} else {
-			s.WriteString("   " + opt + padding)
-			s.WriteString(term.String(hint).Faint().String())
+			style := func(str string) term.Style {
+				return term.String(str).Faint()
+			}
+			s.WriteString("   " + opt)
+			s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style))
 		}
 		s.WriteString("\n")
 	}
 	s.WriteString("\n")
 	for _, rejected := range m.filtered {
-		opt, hint := rejected[0], rejected[1]
-		padding := strings.Repeat(" ", m.maxOptLen()-len(opt))
-		s.WriteString("   " + term.String(opt+padding+hint).Faint().String())
+		style := func(str string) term.Style {
+			return term.String(str).Faint()
+		}
+		opt := style(padding.String(rejected[0], uint(maxOptLen))).String()
+		hint := rejected[1]
+		s.WriteString("   " + opt)
+		s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style))
 		s.WriteString("\n")
 	}
 
