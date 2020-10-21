@@ -60,7 +60,7 @@ var Scope = Marked("Scope")(Delimeted(Tag("("), TakeUntil(Tag(")")), Tag(")")))
 var BreakingChangeBang = Marked("BreakingChangeBang")(Tag("!"))
 var Context = Sequence(CommitType, Opt(Scope), Opt(BreakingChangeBang))
 
-func ParseHead(head []rune) (*CCHeader, error) {
+func ParseHeader(head []rune) (*CCHeader, error) {
 	header := CCHeader{}
 	ctx, ctxErr := Context(head)
 	if ctxErr != nil {
@@ -120,7 +120,7 @@ func ParseRest(input []rune) (*CCRest, error) {
 	return rest, err
 }
 
-func firstLine(s string) (string, string) {
+func splitOutFirstLine(s string) (string, string) {
 	result := strings.SplitN(s, "\r\n", 2)
 	if len(result) == 1 {
 		result = strings.SplitN(s, "\n", 2)
@@ -134,12 +134,12 @@ func firstLine(s string) (string, string) {
 
 func ParseCC(fullCommit string) (*CC, error) {
 	cc := &CC{}
-	firstLine, otherLines := firstLine(fullCommit)
+	firstLine, otherLines := splitOutFirstLine(fullCommit)
 	if len(firstLine) == 0 {
 		return cc, fmt.Errorf("empty commit")
 	}
 
-	header, headerErr := ParseHead([]rune(firstLine))
+	header, headerErr := ParseHeader([]rune(firstLine))
 	if headerErr != nil {
 		panic(headerErr)
 	}

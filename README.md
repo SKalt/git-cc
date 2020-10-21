@@ -1,23 +1,46 @@
 # git-cc
 > a git extension to help write [conventional commits][cc-standard]
 
-## install
+## Installation
+
+<details open><summary>With Go</summary>
 
 ```sh
 go install github.com/skalt/git-cc
-
-git cc feat added conventional commits
-# --> "feat: added conventional commits"
-git cc feat: added conventional commits
-# --> "feat: added conventional commits"
-git cc fix something: an error
-# --> "fix(something): an error"
-
-git cc feat
-# interactively write a conventional commit from the description onward
-git cc
-# interactively write a conventional commit!
 ```
+
+</details>
+
+<!-- TODO: with npm -->
+<!-- TODO: with yarn -->
+<!-- TODO: with pnpm -->
+
+<!-- TODO: with pip -->
+<!-- TODO: with pipenv -->
+<!-- TODO: with poetry -->
+<!-- TODO: with conda -->
+
+<!-- TODO: with cargo? -->
+
+<!-- TODO: with apt -->
+<!-- TODO: with rpm -->
+<!-- TODO: with brew -->
+<!-- TODO: with git -->
+
+
+## Usage
+
+```sh
+# interactively write a conventional commit
+git cc               # in its entirety
+git cc feat          # from the commit-type onwards
+git cc 'feat(scope)' # from the scope       onwards
+
+# or validate your conventional commit
+git cc feat: added conventional commits # ok! creates a commit
+git cc feat add a typo                  # starts interaction at the scope 
+```
+
 <!-- 
 ## Why Conventional Commits?
 The cool kids are doing it.
