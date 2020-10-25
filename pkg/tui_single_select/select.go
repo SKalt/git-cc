@@ -38,7 +38,7 @@ func NewModel(prompt string, options []string, hints []string, choice chan<- str
 	textInputModel := textinput.NewModel()
 	textInputModel.Placeholder = "type to select"
 	textInputModel.Prompt = "   "
-	textInputModel.Focus()
+	// textInputModel.Focus() // must be done by the supervising component
 
 	result := Model{
 		Options:   options,
@@ -131,6 +131,7 @@ func wrapLine(left uint, hint string, right int, style func(string) term.Style) 
 	}
 	return result
 }
+
 func (m Model) View() string {
 	s := strings.Builder{}
 	s.WriteString(textinput.View(m.textInput) + "\n")

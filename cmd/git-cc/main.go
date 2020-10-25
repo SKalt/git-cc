@@ -3,17 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/skalt/git-cc/pkg/config"
-	input "github.com/skalt/git-cc/pkg/tui_single_select"
+	editor "github.com/skalt/git-cc/pkg/tui_description_editor"
 )
 
 type model struct {
-	commitTypeChoice   chan<- string
-	commitTypeSelector input.Model
-	//
+	commitTypeChoice chan<- string
+	// commitTypeSelector input.Model
+	editor editor.Model
 }
 
 func (m model) Init() tea.Cmd {
@@ -26,9 +26,10 @@ func main() {
 	if err := ui.Start(); err != nil {
 		log.Fatal(err)
 	}
-
 	if r := <-choice; r != "" {
 		fmt.Printf("\n---\nYou chose %s!\n", r)
+	} else {
+		os.Exit(1)
 	}
 }
 
@@ -36,27 +37,28 @@ func main() {
 // function that returns the initialize function and is typically how you would
 // pass arguments to a tea.Init function.
 func initialModel(choice chan string) model {
-	cfg := config.Init()
-	data := config.Lookup(cfg)
-	commitTypes := data.CommitTypes
-	options := make([]string, len(commitTypes))
-	hints := make([]string, len(commitTypes))
-	for i, description := range commitTypes {
-		options[i] = description.Name
-		hints[i] = description.Description
-	}
-	textModel := input.NewModel("   ", options, hints, choice)
+	// cfg := config.Init()
+	// data := config.Lookup(cfg)
+	// commitTypes := data.CommitTypes
+	// options := make([]string, len(commitTypes))
+	// hints := make([]string, len(commitTypes))
+	// for i, description := range commitTypes {
+	// 	options[i] = description.Name
+	// 	hints[i] = description.Description
+	// }
+	textModel := editor.NewModel(choice, "feat(cli): ", 100)
+	textModel.Focus()
 	return model{
-		commitTypeSelector: textModel,
+		editor: textModel,
 	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	m.commitTypeSelector, cmd = input.Update(msg, m.commitTypeSelector)
+	m.editor, cmd = m.editor.Update(msg)
 	return m, cmd
 }
 
 func (m model) View() string {
-	return m.commitTypeSelector.View()
+	return m.editor.View()
 }

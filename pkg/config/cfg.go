@@ -42,6 +42,9 @@ func Init() *viper.Viper {
 		{"revert", "reverts prior changes"},
 	})
 	cfg.SetDefault("scopes", []Described{})
+	cfg.SetDefault("one_liner_max_len", 72) // TODO: improve name
+	// s.t. git log --oneline should remain within 80 columns
+	// this caps the max len of the `type(scope): description`, not the body
 	// TODO: use env vars?
 
 	// TODO: use git commit's flag-args
