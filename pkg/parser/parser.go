@@ -83,7 +83,7 @@ func ParseHeader(head []rune) (*CCHeader, error) {
 	return &header, descErr
 }
 
-var BreakingChange = Tag("BREAKING CHANGE")
+var BreakingChange = Any(Tag("BREAKING CHANGE"), Tag("BREAKING-CHANGE"))
 
 var KebabWord = Regex(`[\w-]+`)
 var FooterToken = Any(

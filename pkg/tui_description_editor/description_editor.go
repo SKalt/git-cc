@@ -14,23 +14,31 @@ import (
 type Model struct {
 	prefix    string
 	prefixLen int
-	Choice    chan<- string
 	input     textinput.Model
 	softMax   int // TODO: make *int and use nil to eliminate countdown
 }
 
-func (m Model) Focus() {
+func (m Model) SetPrefix(prefix string) {
+	m.input.Prompt = termenv.String(prefix).Faint().String()
+}
+func (m Model) Focus() tea.Cmd {
 	m.input.Focus()
+	return textinput.Blink(m.input)
+}
+func (m Model) Blur() {
+	m.input.Blur()
+}
+func (m Model) Value() string {
+	return m.input.Value()
 }
 
-func NewModel(choice chan string, prefix string, softLengthLimit int) Model {
+func NewModel(prefix string, softLengthLimit int) Model {
 	input := textinput.NewModel()
 	input.Prompt = termenv.String(prefix).Faint().String()
-	// input.Focus() // should be done by supervisor
+	input.Focus()
 	return Model{
 		prefixLen: len(prefix),
 		softMax:   softLengthLimit,
-		Choice:    choice,
 		input:     input,
 	}
 }
@@ -60,11 +68,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEnter:
-			m.Choice <- m.input.Value()
-			return m, tea.Quit
+		// case tea.KeyEnter: // handled by Value()
+		// 	m.Choice <- m.input.Value()
+		// 	return m, tea.Quit
 		case tea.KeyCtrlC, tea.KeyCtrlD:
-			close(m.Choice)
+			// close(m.Choice)
 			return m, tea.Quit
 		default:
 			m.input, cmd = textinput.Update(msg, m.input)

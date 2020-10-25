@@ -24,34 +24,46 @@ type Model struct {
 	Cursor          int
 	maxOptionLength int
 
-	Width  int // in runes
-	Height int // in lines
-
-	Choice    chan<- string
+	Width     int // in runes
+	Height    int // in lines
+	selected  string
 	textInput textinput.Model
 }
 
-func NewModel(prompt string, options []string, hints []string, choice chan<- string) Model {
+func (m Model) Init() tea.Cmd {
+	return textinput.Blink(m.textInput)
+}
+func NewModel(options []string, hints []string) Model {
 	if len(options) != len(hints) {
 		panic(fmt.Errorf("#opts : %d != %d : #hints", len(options), len(hints)))
 	}
 	textInputModel := textinput.NewModel()
 	textInputModel.Placeholder = "type to select"
 	textInputModel.Prompt = "   "
+	textInputModel.Focus()
 	// textInputModel.Focus() // must be done by the supervising component
 
 	result := Model{
 		Options:   options,
 		Hints:     hints,
 		textInput: textInputModel,
-		Choice:    choice,
 	}
 	result.matched, result.filtered = result.filter("")
 	return result
 }
-func (m Model) Ready() bool {
-	return len(m.matched) > 0
+func (m *Model) Focus() tea.Cmd {
+	m.textInput.Focus()
+	return textinput.Blink(m.textInput)
 }
+
+func (m Model) Focused() bool {
+	return m.textInput.Focused()
+}
+
+func (m Model) Blur() {
+	m.textInput.Blur()
+}
+
 func (m Model) maxOptLen() int {
 	if m.maxOptionLength > 0 {
 		return m.maxOptionLength
@@ -79,21 +91,31 @@ func (m Model) filter(startingWith string) ([][2]string, [][2]string) {
 	return matched, filtered
 }
 
+func (m Model) Value() string {
+	if len(m.matched) > 0 {
+		return m.matched[m.Cursor][0]
+	} else {
+		return ""
+	}
+}
+
 func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			close(model.Choice)
 			return model, tea.Quit
-		case tea.KeyEnter, tea.KeyTab:
-			if len(model.matched) > 0 {
-				model.Choice <- model.matched[model.Cursor][0]
-				return model, tea.Quit
-			} else {
-				return model, textinput.Blink(model.textInput)
-			}
+		// case tea.KeyEnter, tea.KeyTab: // handled by Value()
+		// 	//
+		// 	m.Value()
+		// 	if len(model.matched) > 0 {
+		// 		fmt.Printf("sending %+v", model.matched[model.Cursor][0])
+		// 		model.Choice <- model.matched[model.Cursor][0]
+		// 		return model, tea.Quit
+		// 	} else {
+		// 		return model, textinput.Blink(model.textInput)
+		// 	}
 		case tea.KeyUp:
 			if model.Cursor > 0 {
 				model.Cursor -= 1
@@ -121,6 +143,10 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 		return model, cmd
 	}
 	return model, cmd
+}
+
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	return Update(msg, m)
 }
 
 func wrapLine(left uint, hint string, right int, style func(string) term.Style) string {
@@ -161,14 +187,12 @@ func (m Model) View() string {
 		style := func(str string) term.Style {
 			return term.String(str).Faint()
 		}
-		opt := style(padding.String(rejected[0], uint(maxOptLen))).String()
+		opt := style(padding.String(rejected[0], uint(maxOptLen))).String() + " "
 		hint := rejected[1]
 		s.WriteString("   " + opt)
 		s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style))
 		s.WriteString("\n")
 	}
-
-	s.WriteString("\n")
 
 	s.WriteString(
 		term.String("\n(tab/enter to select, up/down to navigate, Ctrl+C to quit)\n").Faint().String(),
