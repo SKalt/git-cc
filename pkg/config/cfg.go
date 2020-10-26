@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/muesli/termenv"
 	"github.com/spf13/viper"
@@ -98,7 +99,7 @@ func getGitVar(var_name string) (string, error) {
 	if err != nil {
 		return "", err
 	} else {
-		return out.String(), err
+		return strings.TrimRight(out.String(), " \t\r\n"), err
 	}
 }
 
@@ -115,12 +116,12 @@ func GetGitEditor() string {
 }
 
 func GetCommitMessageFile() string {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd := exec.Command("git", "rev-parse", "--absolute-git-dir")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return out.String() + string(os.PathSeparator) + "COMMIT_EDITMSG"
+	return strings.TrimRight(out.String(), " \t\r\n") + string(os.PathSeparator) + "COMMIT_EDITMSG"
 }

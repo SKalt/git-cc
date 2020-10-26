@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -102,6 +103,25 @@ func main() {
 		close(choice)
 		os.Exit(1) // no submission
 	} else {
+		f := config.GetCommitMessageFile()
+		file, err := os.Create(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = file.Write([]byte(r))
+		if err != nil {
+			log.Fatal(err)
+		}
+		cmd := strings.Split(config.GetGitEditor(), " ")
+		cmd = append(cmd, config.GetCommitMessageFile())
+		process := exec.Command(cmd[0], cmd[1:]...)
+		process.Stdin = os.Stdin
+		process.Stdout = os.Stdout
+		err = process.Run()
+		if err != nil {
+			panic(err)
+			log.Fatal(err)
+		}
 		fmt.Printf("\n---\nYou chose `%s`\n", r)
 	}
 }
