@@ -1,15 +1,10 @@
 package tui_single_select
 
 import (
-	"fmt"
 	"strings"
-
-	_ "sort"
-	_ "strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	_ "github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/indent"
 	"github.com/muesli/reflow/padding"
 	"github.com/muesli/reflow/wordwrap"
@@ -23,19 +18,22 @@ type Model struct {
 	matched         [][2]string
 	Cursor          int
 	maxOptionLength int
-
-	Width     int // in runes
-	Height    int // in lines
-	selected  string
-	textInput textinput.Model
+	context         string
+	Width           int // in runes
+	Height          int // in lines
+	selected        string
+	textInput       textinput.Model
 }
 
 func (m Model) Init() tea.Cmd {
 	return textinput.Blink(m.textInput)
 }
-func NewModel(options []string, hints []string) Model {
-	if len(options) != len(hints) {
-		panic(fmt.Errorf("#opts : %d != %d : #hints", len(options), len(hints)))
+func NewModel(context string, options []map[string]string) Model {
+	values, hints := []string{}, []string{}
+	for _, option := range options {
+		for value, hint := range option {
+			values, hints = append(values, value), append(hints, hint)
+		}
 	}
 	textInputModel := textinput.NewModel()
 	textInputModel.Placeholder = "type to select"
@@ -44,7 +42,8 @@ func NewModel(options []string, hints []string) Model {
 	// textInputModel.Focus() // must be done by the supervising component
 
 	result := Model{
-		Options:   options,
+		context:   context,
+		Options:   values,
 		Hints:     hints,
 		textInput: textInputModel,
 	}
@@ -54,6 +53,11 @@ func NewModel(options []string, hints []string) Model {
 func (m *Model) Focus() tea.Cmd {
 	m.textInput.Focus()
 	return textinput.Blink(m.textInput)
+}
+
+func (m Model) SetErr(err error) Model {
+	m.textInput.Err = err
+	return m
 }
 
 func (m Model) Focused() bool {
@@ -106,16 +110,6 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			return model, tea.Quit
-		// case tea.KeyEnter, tea.KeyTab: // handled by Value()
-		// 	//
-		// 	m.Value()
-		// 	if len(model.matched) > 0 {
-		// 		fmt.Printf("sending %+v", model.matched[model.Cursor][0])
-		// 		model.Choice <- model.matched[model.Cursor][0]
-		// 		return model, tea.Quit
-		// 	} else {
-		// 		return model, textinput.Blink(model.textInput)
-		// 	}
 		case tea.KeyUp:
 			if model.Cursor > 0 {
 				model.Cursor -= 1
@@ -160,6 +154,7 @@ func wrapLine(left uint, hint string, right int, style func(string) term.Style) 
 
 func (m Model) View() string {
 	s := strings.Builder{}
+	s.WriteString(m.context + "\n")
 	s.WriteString(textinput.View(m.textInput) + "\n")
 	leftGutter := 3 // "   "
 	maxOptLen := m.maxOptLen()
@@ -182,7 +177,7 @@ func (m Model) View() string {
 		}
 		s.WriteString("\n")
 	}
-	s.WriteString("\n")
+	// s.WriteString("\n")
 	for _, rejected := range m.filtered {
 		style := func(str string) term.Style {
 			return term.String(str).Faint()
