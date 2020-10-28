@@ -8,29 +8,10 @@ import (
 // see https://medium.com/@armin.heller/using-parser-combinators-in-go-e63b3ad69c94,
 // https://github.com/Geal/nom (v5+), and https://bodil.lol/parser-combinators/
 
-// TODO: have parsers output a Concrete Syntax Tree (CST).
-// IDEA: have parserresult interface be tree-ish:
-// type ResultIdea struct {
-// 	Children []ResultIdea
-// 	Kind     string  // should be Token or symbol, might be empty in case of ignored chars
-// 	Range    [2]int  // start, end. Empty if start == end.
-// 	Original *string // pointer to the original input
-// 	//? Parent *ResultIdea
-// }
-
-// func (r *ResultIdea) OriginalString() string {
-// 	return (*r.Original)[r.Range[0]:r.Range[1]]
-// }
-// func (r *ResultIdea) Remaining() []rune {
-// 	return []rune((*r.Original)[r.Range[1]:])
-// }
-
-// type ParserIdea func( /*input*/ *string, int /*rune start index*/) (*ResultIdea, error)
-
 type Result struct {
 	Children  []Result
-	Value     string
 	Type      string
+	Value     string
 	Remaining []rune
 }
 
@@ -43,7 +24,6 @@ func (r *Result) CopyTyped(name string) *Result {
 	}
 }
 
-type ParserCallback func([]rune) interface{}
 type Parser func([]rune) (*Result, error)
 type void struct{}
 

@@ -56,19 +56,6 @@ func Init() *viper.Viper {
 	// this caps the max len of the `type(scope): description`, not the body
 	// TODO: use env vars?
 
-	// TODO: use git commit's flag-args
-	// -a, --all
-
-	// // --amend ... might be better manually?
-	// // --no-edit
-
-	// --no-post-rewrite //?
-	// --dry-run
-	// --no-gpg-sign
-	// -s, --signoff
-	// --author=<author>
-	// --date=<date>
-
 	return cfg
 }
 

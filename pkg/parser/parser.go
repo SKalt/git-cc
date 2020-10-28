@@ -141,11 +141,12 @@ func ParseCC(fullCommit string) (*CC, error) {
 
 	header, headerErr := ParseHeader([]rune(firstLine))
 	if headerErr != nil {
-		panic(headerErr)
+		return cc, headerErr
 	}
 	cc.Type = header.Type
 	cc.Scope = header.Scope
 	cc.BreakingChange = header.BreakingChange
+	cc.Description = header.Description
 	otherLines = strings.TrimRight(otherLines, "\n\r\t ")
 	if len(otherLines) > 0 {
 		rest, restErr := ParseRest([]rune(otherLines))

@@ -11,5 +11,6 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.0.3
 	github.com/muesli/reflow v0.1.0
 	github.com/muesli/termenv v0.7.4
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
 )

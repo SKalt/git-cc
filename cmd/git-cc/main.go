@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/termenv"
+	"github.com/spf13/cobra"
 
 	"github.com/skalt/git-cc/pkg/config"
+	"github.com/skalt/git-cc/pkg/parser"
 	"github.com/skalt/git-cc/pkg/tui_breaking_change_input"
 	"github.com/skalt/git-cc/pkg/tui_description_editor"
 	"github.com/skalt/git-cc/pkg/tui_single_select"
@@ -90,40 +90,6 @@ func (m model) currentComponent() InputComponent {
 		m.descriptionInput,
 		m.breakingChangeInput,
 	}[m.viewing]
-}
-
-func main() {
-	choice := make(chan string, 1)
-	m := initialModel(choice)
-	ui := tea.NewProgram(m)
-	if err := ui.Start(); err != nil {
-		log.Fatal(err)
-	}
-	if r := <-choice; r == "" {
-		close(choice)
-		os.Exit(1) // no submission
-	} else {
-		f := config.GetCommitMessageFile()
-		file, err := os.Create(f)
-		if err != nil {
-			log.Fatal(err)
-		}
-		_, err = file.Write([]byte(r))
-		if err != nil {
-			log.Fatal(err)
-		}
-		cmd := strings.Split(config.GetGitEditor(), " ")
-		cmd = append(cmd, config.GetCommitMessageFile())
-		process := exec.Command(cmd[0], cmd[1:]...)
-		process.Stdin = os.Stdin
-		process.Stdout = os.Stdout
-		err = process.Run()
-		if err != nil {
-			panic(err)
-			log.Fatal(err)
-		}
-		fmt.Printf("\n---\nYou chose `%s`\n", r)
-	}
 }
 
 // Pass a channel to the model to listen to the result value. This is a
@@ -224,4 +190,80 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	return m.currentComponent().View()
+}
+
+var rootCmd = &cobra.Command{
+	Use: "git-cc",
+	// Short: "",
+	// Long: "",
+	Run: func(cmd *cobra.Command, args []string) {
+		delegatedArgs := []string{}
+		ccArgs := []string{}
+		cc := &parser.CC{}
+		var err error
+		for i, arg := range args {
+			if len(arg) <= 0 || []rune(arg)[0] != '-' {
+				ccArgs = args[i:]
+				break // ?
+			} else {
+				delegatedArgs = append(delegatedArgs, arg)
+			}
+		}
+		if len(ccArgs) > 0 {
+			cc, err = parser.ParseCC(strings.Join(ccArgs, " "))
+			fmt.Printf("%+v\n%d\n%+v", cc, len(cc.Footers), err)
+		}
+		// choice := make(chan string, 1)
+		// m := initialModel(choice)
+		// ui := tea.NewProgram(m)
+		// if err := ui.Start(); err != nil {
+		// 	log.Fatal(err)
+		// }
+		// if result := <-choice; result == "" {
+		// 	close(choice)
+		// 	os.Exit(1) // no submission
+		// } else {
+		// 	f := config.GetCommitMessageFile()
+		// 	file, err := os.Create(f)
+		// 	if err != nil {
+		// 		log.Fatal(err)
+		// 	}
+		// 	_, err = file.Write([]byte(result))
+		// 	if err != nil {
+		// 		log.Fatal(err)
+		// 	}
+		// 	cmd := strings.Split(config.GetGitEditor(), " ")
+		// 	cmd = append(cmd, config.GetCommitMessageFile())
+		// 	process := exec.Command(cmd[0], cmd[1:]...)
+		// 	process.Stdin = os.Stdin
+		// 	process.Stdout = os.Stdout
+		// 	err = process.Run()
+		// 	if err != nil {
+		// 		log.Fatal(err)
+		// 	} else {
+		// 		os.Exit(0)
+		// 	}
+		// }
+		// TODO: move commit args here
+	},
+}
+
+func init() {
+	rootCmd.Flags().Bool("help", false, "display a man page if possible")
+	rootCmd.Flags().Bool("h", false, "print usage to stderr")
+	// TODO: use git commit's flag-args
+	// --no-post-rewrite //?
+	// --author=<author> // not sure if th
+	// --date=<date>
+	// --amend ... might be better manually?
+	// --no-edit
+	rootCmd.Flags().Bool("dry-run", false, "see the git-commit docs for --dry-run")
+	rootCmd.Flags().BoolP("all", "a", false, "see the git-commit docs for --all|-a")
+	rootCmd.Flags().BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
+	rootCmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
+	rootCmd.Flags().Bool("m", false, "ignored if args are passed")
+}
+
+func main() {
+	rootCmd.Execute()
 }
