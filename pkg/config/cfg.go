@@ -12,7 +12,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-var ( // TODO: just use map[string]string{}
+var (
+	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
+	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
 	AngularPresetCommmitTypes = []map[string]string{
 		{"feat": "adds a new feature"},
 		{"fix": "fixes a bug"},
@@ -45,8 +47,7 @@ func Init() *viper.Viper {
 	cfg.SetConfigType("yaml")
 	cfg.AddConfigPath(".")
 	cfg.AddConfigPath("$HOME")
-	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
-	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
+
 	cfg.SetDefault("commit_types", AngularPresetCommmitTypes)
 	cfg.SetDefault("scopes", map[string]string{})
 	cfg.SetDefault("header_max_length", 72)

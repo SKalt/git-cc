@@ -74,7 +74,6 @@ func Marked(mark string) func(Parser) Parser {
 				return result.CopyTyped(mark), nil
 			}
 		}
-		//
 	}
 }
 
@@ -137,7 +136,8 @@ func Tag(tag string) Parser {
 	toMatch := []rune(tag)
 	return func(input []rune) (*Result, error) {
 		if len(toMatch) > len(input) {
-			return nil, fmt.Errorf("input longer than tag")
+			return nil, fmt.Errorf(
+				"input `%s` shorter than tag `%s`", string(input), tag)
 		}
 		for i, matching := range toMatch {
 			if input[i] != matching {
@@ -164,6 +164,36 @@ func Any(parsers ...Parser) Parser {
 			}
 		}
 		return nil, fmt.Errorf("expected a parser to match")
+	}
+}
+
+func Some(parsers ...Parser) Parser {
+	return func(input []rune) (*Result, error) {
+		var currentInput = make([]rune, len(input))
+		children := make([]Result, len(parsers))
+		copy(currentInput, input)
+		var err error
+		var result *Result
+		for i, parser := range parsers {
+			result, err = parser(currentInput)
+			if err != nil {
+				break
+			} else {
+				currentInput = result.Remaining
+				if len(result.Value)+len(result.Type) > 0 {
+					children[i] = *result
+				}
+			}
+		}
+		value := ""
+		for i := range children {
+			value = value + children[i].Value
+		}
+		return &Result{
+			Children:  children,
+			Value:     value,
+			Remaining: currentInput,
+		}, err
 	}
 }
 
@@ -199,29 +229,11 @@ func clone(input []rune) []rune {
 
 func Sequence(parsers ...Parser) Parser {
 	return func(input []rune) (*Result, error) {
-		var currentInput = make([]rune, len(input))
-		children := make([]Result, len(parsers))
-		copy(currentInput, input)
-		for i, parser := range parsers {
-			result, err := parser(currentInput)
-			if err != nil {
-				return nil, err
-			} else {
-				currentInput = result.Remaining
-				if len(result.Value)+len(result.Type) > 0 {
-					children[i] = *result
-				}
-			}
+		result, err := Some(parsers...)(input)
+		if err != nil {
+			return nil, err
 		}
-		value := ""
-		for i := range children {
-			value = value + children[i].Value
-		}
-		return &Result{
-			Children:  children,
-			Value:     value,
-			Remaining: currentInput,
-		}, nil
+		return result, nil
 	}
 }
 func Delimeted(start Parser, middle Parser, end Parser) Parser {

@@ -40,8 +40,11 @@ func (m Model) Value() string {
 	return m.input.Value()
 }
 
-func NewModel(lengthLimit int, enforced bool) Model {
+func NewModel(lengthLimit int, value string, enforced bool) Model {
 	input := textinput.NewModel()
+	input.SetValue(value)
+	input.SetCursor(len(value))
+	// input.Cursor = len(value)
 	input.Prompt = termenv.String(prePrompt).Faint().String()
 	if enforced {
 		input.CharLimit = lengthLimit

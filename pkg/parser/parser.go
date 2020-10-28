@@ -14,6 +14,80 @@ type CC struct {
 	BreakingChange bool
 }
 
+func (cc *CC) Ingest(r Result) *CC {
+	switch r.Type {
+	case "BreakingChangeBang":
+		cc.BreakingChange = true
+	case "Scope":
+		cc.Scope = r.Value
+	case "CommitType":
+		cc.Type = r.Value
+	case "Description":
+		cc.Description = r.Value
+	case "Body":
+		cc.Body = r.Value
+	case "Footers":
+		footers := []string{}
+		for _, footer := range r.Children {
+			for _, footerPart := range footer.Children {
+				if footerPart.Type == "BreakingChange" {
+					cc.BreakingChange = true
+				}
+			}
+			footers = append(footers, footer.Value)
+		}
+		cc.Footers = footers
+	}
+	return cc
+}
+
+func (cc *CC) ToString() string {
+	s := strings.Builder{}
+	s.WriteString(cc.Type)
+	if cc.Scope != "" {
+		s.WriteString(fmt.Sprintf("(%s)", cc.Scope))
+	}
+	if cc.BreakingChange {
+		s.WriteString("!")
+	}
+	s.WriteString(": ")
+	s.WriteString(cc.Description)
+	s.WriteString("\n\n")
+	body := strings.Trim(cc.Body, "\n\r\t ")
+	if body != "" {
+		s.WriteString(body)
+		s.WriteString("\n\n")
+	}
+	for _, footer := range cc.Footers {
+		s.WriteString(strings.Trim(footer, "\n\r\t ") + "\n")
+	}
+	return s.String()
+}
+
+func (cc *CC) MinimallyValid() bool {
+	return cc.Type != "" && cc.Description != ""
+}
+
+func (cc *CC) ValidCommitType(commitTypes []map[string]string) bool {
+	for _, commitType := range commitTypes {
+		_, matched := commitType[cc.Type]
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
+func (cc *CC) ValidScope(knownScopes []map[string]string) bool {
+	for _, scope := range knownScopes {
+		_, matched := scope[cc.Type]
+		if matched {
+			return true
+		}
+	}
+	return len(knownScopes) == 0
+}
+
 type CCHeader struct {
 	Type           string
 	Scope          string
@@ -41,7 +115,7 @@ var ColonSep = Tag(": ")
 
 // A description MUST immediately follow the colon and space after the type/scope prefix. The description is a short summary of the code changes, e.g., fix: array parsing issue when multiple spaces were contained in string.
 
-var CommitType = Marked("CommitType")(
+var CommitType Parser = Marked("CommitType")(
 	TakeUntil(Any(BreakingChangeBang, Tag(":"), Tag("("))),
 )
 
@@ -55,9 +129,10 @@ var CommitType = Marked("CommitType")(
 // }
 
 // A scope MAY be provided after a type. A scope MUST consist of a noun describing a section of the codebase surrounded by parenthesis, e.g., fix(parser):
-var Scope = Marked("Scope")(Delimeted(Tag("("), TakeUntil(Tag(")")), Tag(")")))
+var Scope Parser = Marked("Scope")(Delimeted(Tag("("), TakeUntil(Tag(")")), Tag(")")))
+var BreakingChangeBang Parser = Marked("BreakingChangeBang")(Tag("!"))
+var ShortDescription Parser = Marked("Description")(TakeUntil(Any(Empty, Newline)))
 
-var BreakingChangeBang = Marked("BreakingChangeBang")(Tag("!"))
 var Context = Sequence(CommitType, Opt(Scope), Opt(BreakingChangeBang))
 
 func ParseHeader(head []rune) (*CCHeader, error) {
@@ -87,13 +162,15 @@ var BreakingChange = Any(Tag("BREAKING CHANGE"), Tag("BREAKING-CHANGE"))
 
 var KebabWord = Regex(`[\w-]+`)
 var FooterToken = Any(
-	Marked("BreakingChange")(Sequence(BreakingChange, ColonSep)),
-	Sequence(KebabWord, Any(ColonSep, Tag(" #"))),
+	Marked("BreakingChange")(Sequence(Newline, BreakingChange, ColonSep)),
+	Sequence(Newline, KebabWord, Any(ColonSep, Tag(" #"))),
 )
 
-var Body = Sequence(Newline, TakeUntil(Any(Empty, FooterToken)))
-var Footer = Sequence(FooterToken, TakeUntil(Any(Empty, FooterToken)))
-var Footers = Many0(Footer)
+var Body = Marked("Body")(TakeUntil(Any(Empty, FooterToken)))
+var Footer = Marked("Footer")(
+	Sequence(FooterToken, TakeUntil(Any(Empty, FooterToken))),
+)
+var Footers = Marked("Footers")(Many0(Footer))
 
 func ParseRest(input []rune) (*CCRest, error) {
 	rest := &CCRest{}
@@ -130,6 +207,22 @@ func splitOutFirstLine(s string) (string, string) {
 	} else {
 		return result[0], result[1]
 	}
+}
+
+func ParseAsMuchOfCCAsPossible(fullCommit string) (*CC, error) {
+	parsed, err := Some(
+		CommitType, Opt(Scope), Opt(BreakingChangeBang), ColonSep, ShortDescription,
+		Opt(Newline), Opt(Newline),
+		Opt(Body),
+		Opt(Footers),
+	)([]rune(fullCommit))
+	result := &CC{}
+	if parsed != nil && parsed.Children != nil {
+		for _, token := range parsed.Children {
+			result = result.Ingest(token)
+		}
+	}
+	return result, err
 }
 
 func ParseCC(fullCommit string) (*CC, error) {

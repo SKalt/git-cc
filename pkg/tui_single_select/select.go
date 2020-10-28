@@ -28,24 +28,25 @@ type Model struct {
 func (m Model) Init() tea.Cmd {
 	return textinput.Blink(m.textInput)
 }
-func NewModel(context string, options []map[string]string) Model {
+func NewModel(context string, value string, options []map[string]string) Model {
 	values, hints := []string{}, []string{}
 	for _, option := range options {
 		for value, hint := range option {
 			values, hints = append(values, value), append(hints, hint)
 		}
 	}
-	textInputModel := textinput.NewModel()
-	textInputModel.Placeholder = "type to select"
-	textInputModel.Prompt = "   "
-	textInputModel.Focus()
-	// textInputModel.Focus() // must be done by the supervising component
+	input := textinput.NewModel()
+	input.Placeholder = "type to select"
+	input.Prompt = "   "
+	input.SetValue(value)
+	input.SetCursor(len(value))
+	input.Focus()
 
 	result := Model{
 		context:   context,
 		Options:   values,
 		Hints:     hints,
-		textInput: textInputModel,
+		textInput: input,
 	}
 	result.matched, result.filtered = result.filter("")
 	return result
