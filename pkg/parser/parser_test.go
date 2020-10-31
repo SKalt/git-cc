@@ -138,7 +138,7 @@ func TestTakeUntil(t *testing.T) {
 func TestParsingFullCommit(t *testing.T) {
 	test := func(fullValidCommit string, expected CC) func(*testing.T) {
 		return func(t *testing.T) {
-			actual, err := ParseCC(fullValidCommit)
+			actual, err := ParseAsMuchOfCCAsPossible(fullValidCommit)
 			if err != nil {
 				fmt.Printf("%+v", err)
 				t.FailNow()
@@ -221,11 +221,9 @@ func TestParsingFullCommit(t *testing.T) {
 		Description: "correct minor typos in code",
 		Body: `see the issue for details
 
-on typos fixed.
-
-`,
+on typos fixed.`,
 		Footers: []string{
-			"Reviewed-by: Z\n",
+			"Reviewed-by: Z",
 			"Refs #133"},
 		BreakingChange: false,
 	}))
@@ -246,4 +244,41 @@ on typos fixed.
 	//     Footers:     []string{},
 	//     BreakingChange: false,
 	// }))
+}
+
+func TestParsingPartialCommit(t *testing.T) {
+	test := func(partialCommit string, expected CC) func(*testing.T) {
+		return func(t *testing.T) {
+			actual, _ := ParseAsMuchOfCCAsPossible(partialCommit)
+			if actual.Type != expected.Type {
+				fmt.Printf("Type: expected: %+v actual: %+v\n", expected.Type, actual.Type)
+				t.FailNow()
+			}
+			if actual.Scope != expected.Scope {
+				fmt.Printf("Scope: expected: %+v actual: %+v\n", expected.Type, actual.Type)
+				t.FailNow()
+			}
+			if actual.BreakingChange != expected.BreakingChange {
+				fmt.Printf("BreakingChange: expected: %+v actual: %+v\n", expected.BreakingChange, actual.BreakingChange)
+				t.FailNow()
+			}
+			if actual.Body != expected.Body {
+				fmt.Printf("Body: expected: `%+v`\nactual: `%+v`\n", expected.Body, actual.Body)
+				t.FailNow()
+			}
+			if len(actual.Footers) != len(expected.Footers) {
+				fmt.Printf("Footers: expected: %+v actual: %+v\n", expected.Footers, actual.Footers)
+				t.FailNow()
+			}
+			for i := range actual.Footers {
+				if actual.Footers[i] != expected.Footers[i] {
+					fmt.Printf("expected: '%+v' actual: '%+v'\n", expected.Footers[i], actual.Footers[i])
+					t.FailNow()
+				}
+			}
+		}
+	}
+	t.Run("", test("feat", CC{Type: "feat"}))
+	t.Run("", test("feat:", CC{Type: "feat"}))
+	t.Run("", test("feat: ", CC{Type: "feat"}))
 }
