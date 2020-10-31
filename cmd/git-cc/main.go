@@ -64,18 +64,21 @@ func (m model) contextValue() string {
 	if scope != "" {
 		result.WriteString(fmt.Sprintf("(%s)", scope))
 	}
+	breakingChange := m.commit[breakingChangeIndex]
+	if breakingChange != "" {
+		result.WriteRune('!')
+	}
+	result.WriteString(": ")
 	return result.String()
 }
 func (m model) value() string {
 	result := strings.Builder{}
 	result.WriteString(m.contextValue())
+	result.WriteString(m.commit[shortDescriptionIndex])
+	result.WriteString("\n")
 	breakingChange := m.commit[breakingChangeIndex]
 	if breakingChange != "" {
-		result.WriteRune('!')
-	}
-	result.WriteString(fmt.Sprintf(": %s\n", m.commit[shortDescriptionIndex]))
-	if breakingChange != "" {
-		result.WriteString(fmt.Sprintf("\nBREAKING CHANGE: %s\n", breakingChange))
+		result.WriteString(fmt.Sprintf("\n\nBREAKING CHANGE: %s\n", breakingChange))
 		// TODO: handle muliple breaking change footers(?)
 	}
 	return result.String()
@@ -119,19 +122,25 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 			}
 		}
 	}
-	return model{
-		choice: choice,
-		commit: [doneIndex]string{
-			cc.Type,
-			cc.Scope,
-			cc.Description,
-			breakingChanges,
-		},
+	commit := [doneIndex]string{
+		cc.Type,
+		cc.Scope,
+		cc.Description,
+		breakingChanges,
+	}
+	m := model{
+		choice:              choice,
+		commit:              commit,
 		typeInput:           typeModel,
 		scopeInput:          scopeModel,
 		descriptionInput:    descModel,
 		breakingChangeInput: bcModel,
 		viewing:             commitTypeIndex}
+	if m.shouldSkip(m.viewing) {
+		m = m.submit().advance()
+		m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
+	}
+	return m
 }
 
 func (m model) updateCurrentInput(msg tea.Msg) model {
@@ -147,18 +156,14 @@ func (m model) updateCurrentInput(msg tea.Msg) model {
 	}
 	return m
 }
-func (m model) done() (model, tea.Cmd) {
-	if m.ready() {
-		m.choice <- m.value()
-	} else {
-		m.choice <- ""
-	}
-	return m, tea.Quit
-}
+
+// func (m model) done() (model, tea.Cmd) {
+
+// }
 func (m model) shouldSkip(component componentIndex) bool {
 	switch component {
 	case commitTypeIndex:
-		commitType := m.typeInput.Value()
+		commitType := m.commit[commitTypeIndex]
 		for _, opt := range m.typeInput.Options {
 			if commitType == opt {
 				return true
@@ -166,6 +171,9 @@ func (m model) shouldSkip(component componentIndex) bool {
 		}
 		return false
 	case scopeIndex:
+		if len(m.scopeInput.Options) == 0 {
+			return true
+		}
 		scope := m.scopeInput.Value()
 		for _, opt := range m.scopeInput.Options {
 			if scope == opt {
@@ -187,6 +195,11 @@ func (m model) advance() model {
 	}
 	return m
 }
+func (m model) submit() model {
+	m.commit[m.viewing] = m.currentComponent().Value()
+	m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
+	return m
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
@@ -204,26 +217,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			switch m.viewing {
 			default:
-				m.commit[m.viewing] = m.currentComponent().Value()
-				m = m.advance()
-			case scopeIndex:
-				m.descriptionInput = m.descriptionInput.SetPrefix(
-					m.contextValue() + ": ",
-				)
-				m = m.advance()
-				return m, cmd
+				m = m.submit().advance()
 			case breakingChangeIndex:
-				m.commit[breakingChangeIndex] = m.breakingChangeInput.Value()
+				m = m.submit()
 				if m.ready() {
-					return m.done()
+					m.choice <- m.value()
+					return m, tea.Quit
 				} else {
-					err := fmt.Errorf("required")
+					// TODO: better validation messages
 					if m.commit[commitTypeIndex] == "" {
 						m.viewing = commitTypeIndex
-						m.typeInput = m.typeInput.SetErr(err)
 					} else if m.commit[shortDescriptionIndex] == "" {
 						m.viewing = shortDescriptionIndex
-						m.descriptionInput = m.descriptionInput.SetErr(err)
 					}
 					return m, cmd
 				}
@@ -240,12 +245,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return m.currentComponent().View()
+	return m.currentComponent().View() + "\n"
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "git-cc",
-	Short: "yeah",
+	Use: "git-cc",
 	// Long: "",
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.Lookup(config.Init())
@@ -255,7 +259,7 @@ var rootCmd = &cobra.Command{
 		for i, arg := range args {
 			if len(arg) <= 0 || []rune(arg)[0] != '-' {
 				ccArgs = args[i:]
-				break // ?
+				break
 			} else {
 				delegatedArgs = append(delegatedArgs, arg)
 			}
@@ -263,6 +267,7 @@ var rootCmd = &cobra.Command{
 		if len(ccArgs) > 0 {
 			cc, _ = parser.ParseAsMuchOfCCAsPossible(strings.Join(ccArgs, " "))
 		}
+
 		valid := cc.MinimallyValid() &&
 			cc.ValidCommitType(cfg.CommitTypes) &&
 			cc.ValidScope(cfg.Scopes)
@@ -303,20 +308,32 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().Bool("help", false, "display a man page if possible")
-	rootCmd.Flags().Bool("h", false, "print usage to stderr")
-	// TODO: use git commit's flag-args
+	rootCmd.Flags().BoolP("help", "h", false, "display a man page if possible")
+	// TODO: use git commit's flag-args; see https://git-scm.com/docs/git-commit
 	// --no-post-rewrite //?
 	// --author=<author> // not sure if th
 	// --date=<date>
 	// --amend ... might be better manually?
 	// --no-edit
+	// -C <commit>
+	// --reuse-message=<commit>
+	// Take an existing commit object, and reuse the log message and the authorship information (including the timestamp) when creating the commit.
+	// -c <commit>
+	// --reedit-message=<commit>
+	// Like -C, but with -c the editor is invoked, so that the user can further edit the commit message.
+	// --fixup=<commit>
+	// Construct a commit message for use with rebase --autosquash. The commit message will be the subject line from the specified commit with a prefix of "fixup! ". See git-rebase[1] for details.
+	// --squash=<commit>
+	// Construct a commit message for use with rebase --autosquash. The commit message subject line is taken from the specified commit with a prefix of "squash! ". Can be used with additional commit message options (-m/-c/-C/-F). See git-rebase[1] for details.
+	// -short
+	// When doing a dry-run, give the output in the short-format. See git-status[1] for details. Implies --dry-run.
+	// --cleanup=<mode>
+	// This option determines how the supplied commit message should be cleaned up before committing. The <mode> can be strip, whitespace, verbatim, scissors or default.
 	rootCmd.Flags().Bool("dry-run", false, "see the git-commit docs for --dry-run")
 	rootCmd.Flags().BoolP("all", "a", false, "see the git-commit docs for --all|-a")
 	rootCmd.Flags().BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
 	rootCmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
-	rootCmd.Flags().Bool("m", false, "ignored if args are passed")
-
+	rootCmd.Flags().StringP("message", "m", "", "ignored if args are passed")
 }
 
 func main() {
