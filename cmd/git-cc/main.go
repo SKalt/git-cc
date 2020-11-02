@@ -252,11 +252,16 @@ func (m model) View() string {
 }
 func getGitCommitCmd(cmd *cobra.Command) []string {
 	commitCmd := []string{}
+	// TODO: check message not passed
+	noEdit, _ := cmd.Flags().GetBool("no-edit")
 	for _, name := range boolFlags {
 		flag, _ := cmd.Flags().GetBool(name)
 		if flag {
 			commitCmd = append(commitCmd, "--"+name)
 		}
+	}
+	if !noEdit {
+		commitCmd = append(commitCmd, "--edit")
 	}
 	return commitCmd
 }
@@ -279,7 +284,9 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 		fmt.Println(message)
 		return
 	}
-	process := exec.Command("git", append([]string{"commit"}, commitParams...)...)
+	process := exec.Command("git", append([]string{
+		"commit", "--message", message},
+		commitParams...)...)
 	process.Stdin = os.Stdin
 	process.Stdout = os.Stdout
 	if !dryRun {
@@ -370,6 +377,7 @@ func init() {
 	rootCmd.Flags().BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
 	rootCmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
 	rootCmd.Flags().Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
+	rootCmd.Flags().Bool("no-edit", false, "Use the selected commit message without launching an editor.")
 }
 
 func getBoolFlag(flags *pflag.FlagSet, name string) []string {
