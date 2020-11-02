@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/skalt/git-cc/pkg/config"
 	"github.com/skalt/git-cc/pkg/parser"
@@ -27,6 +28,10 @@ const ( // the order of the components
 	breakingChangeIndex
 	// body omitted -- performed by GIT_EDITOR
 	doneIndex
+)
+
+var (
+	boolFlags = [...]string{"all", "signoff", "no-post-rewrite", "no-gpg-sign"}
 )
 
 type InputComponent interface {
@@ -157,9 +162,6 @@ func (m model) updateCurrentInput(msg tea.Msg) model {
 	return m
 }
 
-// func (m model) done() (model, tea.Cmd) {
-
-// }
 func (m model) shouldSkip(component componentIndex) bool {
 	switch component {
 	case commitTypeIndex:
@@ -174,9 +176,10 @@ func (m model) shouldSkip(component componentIndex) bool {
 		if len(m.scopeInput.Options) == 0 {
 			return true
 		}
-		scope := m.scopeInput.Value()
+		scope := m.commit[scopeIndex]
 		for _, opt := range m.scopeInput.Options {
 			if scope == opt {
+				panic("scope already chosen?")
 				return true
 			}
 		}
@@ -247,27 +250,67 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	return m.currentComponent().View() + "\n"
 }
+func getGitCommitCmd(cmd *cobra.Command) []string {
+	commitCmd := []string{}
+	for _, name := range boolFlags {
+		flag, _ := cmd.Flags().GetBool(name)
+		if flag {
+			commitCmd = append(commitCmd, "--"+name)
+		}
+	}
+	return commitCmd
+}
+
+func doCommit(message string, dryRun bool, commitParams []string) {
+	f := config.GetCommitMessageFile()
+	file, err := os.Create(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = file.Write([]byte(message))
+	if err != nil {
+		log.Fatal(err)
+	}
+	// dryRun, _ := cmd.Flags().GetBool("dry-run")
+	// if dryRun {
+	// 	return
+	// }
+	if dryRun {
+		fmt.Println(message)
+		return
+	}
+	process := exec.Command("git", append([]string{"commit"}, commitParams...)...)
+	process.Stdin = os.Stdin
+	process.Stdout = os.Stdout
+	if !dryRun {
+		err = process.Run()
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			os.Exit(0)
+		}
+	}
+}
 
 var rootCmd = &cobra.Command{
 	Use: "git-cc",
 	// Long: "",
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.Lookup(config.Init())
-		delegatedArgs := []string{}
-		ccArgs := []string{}
-		cc := &parser.CC{}
-		for i, arg := range args {
-			if len(arg) <= 0 || []rune(arg)[0] != '-' {
-				ccArgs = args[i:]
-				break
-			} else {
-				delegatedArgs = append(delegatedArgs, arg)
-			}
-		}
-		if len(ccArgs) > 0 {
-			cc, _ = parser.ParseAsMuchOfCCAsPossible(strings.Join(ccArgs, " "))
-		}
+		commitParams := getGitCommitCmd(cmd)
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
+		cc := &parser.CC{}
+		// TODO: handle -m
+
+		message, _ := cmd.Flags().GetString("message")
+		// mPassed := false
+		if len(message) > 0 {
+			// mPassed = true
+			message += " "
+		}
+		message = message + strings.Join(args, " ")
+		cc, _ = parser.ParseAsMuchOfCCAsPossible(message)
 		valid := cc.MinimallyValid() &&
 			cc.ValidCommitType(cfg.CommitTypes) &&
 			cc.ValidScope(cfg.Scopes)
@@ -291,28 +334,22 @@ var rootCmd = &cobra.Command{
 				if err != nil {
 					log.Fatal(err)
 				}
-				cmd := strings.Split(config.GetGitEditor(), " ")
-				cmd = append(cmd, config.GetCommitMessageFile())
-				process := exec.Command(cmd[0], cmd[1:]...)
-				process.Stdin = os.Stdin
-				process.Stdout = os.Stdout
-				err = process.Run()
-				if err != nil {
-					log.Fatal(err)
-				} else {
-					os.Exit(0)
-				}
+				doCommit(result, dryRun, commitParams)
 			}
+		} else {
+			doCommit(cc.ToString(), dryRun, commitParams)
 		}
 	},
 }
 
 func init() {
-	rootCmd.Flags().BoolP("help", "h", false, "display a man page if possible")
-	// TODO: use git commit's flag-args; see https://git-scm.com/docs/git-commit
-	// --no-post-rewrite //?
-	// --author=<author> // not sure if th
+	rootCmd.Flags().BoolP("help", "h", false, "print the usage of git-cc")
+	rootCmd.Flags().Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
+	rootCmd.Flags().StringP("message", "m", "", "pass a complete conventional commit. If valid, it'll be committed without editing.")
+	// TODO: use git commit's flags; see https://git-scm.com/docs/git-commit
+	// --author=<author>
 	// --date=<date>
+
 	// --amend ... might be better manually?
 	// --no-edit
 	// -C <commit>
@@ -329,11 +366,19 @@ func init() {
 	// When doing a dry-run, give the output in the short-format. See git-status[1] for details. Implies --dry-run.
 	// --cleanup=<mode>
 	// This option determines how the supplied commit message should be cleaned up before committing. The <mode> can be strip, whitespace, verbatim, scissors or default.
-	rootCmd.Flags().Bool("dry-run", false, "see the git-commit docs for --dry-run")
 	rootCmd.Flags().BoolP("all", "a", false, "see the git-commit docs for --all|-a")
 	rootCmd.Flags().BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
 	rootCmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
-	rootCmd.Flags().StringP("message", "m", "", "ignored if args are passed")
+	rootCmd.Flags().Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
+}
+
+func getBoolFlag(flags *pflag.FlagSet, name string) []string {
+	present, _ := flags.GetBool(name)
+	if present {
+		return []string{"--" + name}
+	} else {
+		return []string{}
+	}
 }
 
 func main() {
