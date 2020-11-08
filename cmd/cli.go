@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -179,7 +179,6 @@ func (m model) shouldSkip(component componentIndex) bool {
 		scope := m.commit[scopeIndex]
 		for _, opt := range m.scopeInput.Options {
 			if scope == opt {
-				panic("scope already chosen?")
 				return true
 			}
 		}
@@ -254,13 +253,14 @@ func getGitCommitCmd(cmd *cobra.Command) []string {
 	commitCmd := []string{}
 	// TODO: check message not passed
 	noEdit, _ := cmd.Flags().GetBool("no-edit")
+	message, _ := cmd.Flags().GetString("message")
 	for _, name := range boolFlags {
 		flag, _ := cmd.Flags().GetBool(name)
 		if flag {
 			commitCmd = append(commitCmd, "--"+name)
 		}
 	}
-	if !noEdit {
+	if !noEdit || len(message) > 0 {
 		commitCmd = append(commitCmd, "--edit")
 	}
 	return commitCmd
@@ -299,7 +299,7 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 	}
 }
 
-var rootCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use: "git-cc",
 	// Long: "",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -350,9 +350,9 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().BoolP("help", "h", false, "print the usage of git-cc")
-	rootCmd.Flags().Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
-	rootCmd.Flags().StringP("message", "m", "", "pass a complete conventional commit. If valid, it'll be committed without editing.")
+	Cmd.Flags().BoolP("help", "h", false, "print the usage of git-cc")
+	Cmd.Flags().Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
+	Cmd.Flags().StringP("message", "m", "", "pass a complete conventional commit. If valid, it'll be committed without editing.")
 	// TODO: use git commit's flags; see https://git-scm.com/docs/git-commit
 	// --author=<author>
 	// --date=<date>
@@ -373,11 +373,11 @@ func init() {
 	// When doing a dry-run, give the output in the short-format. See git-status[1] for details. Implies --dry-run.
 	// --cleanup=<mode>
 	// This option determines how the supplied commit message should be cleaned up before committing. The <mode> can be strip, whitespace, verbatim, scissors or default.
-	rootCmd.Flags().BoolP("all", "a", false, "see the git-commit docs for --all|-a")
-	rootCmd.Flags().BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
-	rootCmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
-	rootCmd.Flags().Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
-	rootCmd.Flags().Bool("no-edit", false, "Use the selected commit message without launching an editor.")
+	Cmd.Flags().BoolP("all", "a", false, "see the git-commit docs for --all|-a")
+	Cmd.Flags().BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
+	Cmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
+	Cmd.Flags().Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
+	Cmd.Flags().Bool("no-edit", false, "Use the selected commit message without launching an editor.")
 }
 
 func getBoolFlag(flags *pflag.FlagSet, name string) []string {
@@ -387,8 +387,4 @@ func getBoolFlag(flags *pflag.FlagSet, name string) []string {
 	} else {
 		return []string{}
 	}
-}
-
-func main() {
-	rootCmd.Execute()
 }

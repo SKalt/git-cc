@@ -34,11 +34,12 @@ go install github.com/skalt/git-cc
 # interactively write a conventional commit
 git cc               # in its entirety
 git cc feat          # from the commit-type onwards
-git cc 'feat(scope)' # from the scope       onwards
+git cc 'feat(scope)' # from the    scope    onwards
 
 # or validate your conventional commit
 git cc feat: added conventional commits # ok! creates a commit
-git cc feat add a typo                  # starts interaction at the scope 
+git cc feat add a typo                  # starts interaction at the scope
+git cc 'feat(cli): added a conventional commit' # ok! creates a commit
 ```
 
 <!-- 
