@@ -114,8 +114,11 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 	scopeModel := tui_single_select.NewModel(
 		termenv.String("select a scope:").Faint().String(),
 		cc.Scope,
-		cfg.Scopes,
-	) // TODO: skip scopes none present? Option to add new scope?
+		append(
+			[]map[string]string{{"": "unscoped; affects the entire project"}},
+			cfg.Scopes...,
+		),
+	) // TODO: Option to add new scope?
 	descModel := tui_description_editor.NewModel(
 		cfg.HeaderMaxLength, cc.Description, cfg.EnforceMaxLength,
 	)
@@ -180,7 +183,7 @@ func (m model) shouldSkip(component componentIndex) bool {
 		}
 		scope := m.commit[scopeIndex]
 		for _, opt := range m.scopeInput.Options {
-			if scope == opt {
+			if scope == opt && opt != "" {
 				return true
 			}
 		}
@@ -279,10 +282,6 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// dryRun, _ := cmd.Flags().GetBool("dry-run")
-	// if dryRun {
-	// 	return
-	// }
 	if dryRun {
 		fmt.Println(message)
 		return
@@ -311,8 +310,6 @@ var Cmd = &cobra.Command{
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 		cc := &parser.CC{}
-		// TODO: handle -m
-
 		message, _ := cmd.Flags().GetString("message")
 		// mPassed := false
 		if len(message) > 0 {

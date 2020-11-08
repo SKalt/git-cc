@@ -162,8 +162,15 @@ func (m Model) View() string {
 	maxOptLen := m.maxOptLen()
 	leftColumn := (leftGutter + maxOptLen) + 1 // for the space
 	rightColumn := m.Width - leftColumn
+	pad := func(opt string, max int) string {
+		s := padding.String(opt, uint(maxOptLen))
+		if s == "" {
+			s = strings.Repeat(" ", max)
+		}
+		return s
+	}
 	for i, match := range m.matched {
-		opt, hint := padding.String(match[0], uint(maxOptLen)), " "+match[1]
+		opt, hint := pad(match[0], maxOptLen), " "+match[1]
 		if m.Cursor == i {
 			style := func(str string) term.Style {
 				return term.String(str).Underline()
@@ -180,13 +187,12 @@ func (m Model) View() string {
 		s.WriteString("\n")
 	}
 	// s.WriteString("\n")
+	style := func(str string) term.Style {
+		return term.String(str).Faint()
+	}
 	for _, rejected := range m.filtered {
-		style := func(str string) term.Style {
-			return term.String(str).Faint()
-		}
-		opt := style(padding.String(rejected[0], uint(maxOptLen))).String() + " "
-		hint := rejected[1]
-		s.WriteString("   " + opt)
+		opt, hint := style(pad(rejected[0], maxOptLen)).String(), rejected[1]
+		s.WriteString("   " + opt + " ")
 		s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style))
 		s.WriteString("\n")
 	}
