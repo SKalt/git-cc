@@ -66,10 +66,10 @@ func (m model) contextValue() string {
 	result := strings.Builder{}
 	result.WriteString(m.commit[commitTypeIndex])
 	scope := m.commit[scopeIndex]
+	breakingChange := m.commit[breakingChangeIndex]
 	if scope != "" {
 		result.WriteString(fmt.Sprintf("(%s)", scope))
 	}
-	breakingChange := m.commit[breakingChangeIndex]
 	if breakingChange != "" {
 		result.WriteRune('!')
 	}
@@ -107,13 +107,15 @@ func (m model) currentComponent() InputComponent {
 // pass arguments to a tea.Init function.
 func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 	typeModel := tui_single_select.NewModel(
-		termenv.String("select a commit type: ").Faint().String(),
-		cc.Type,
-		cfg.CommitTypes)
+		termenv.String("select a commit type: ").Faint().String(), // context
+		cc.Type, // value
+		cfg.CommitTypes,
+	)
 	scopeModel := tui_single_select.NewModel(
 		termenv.String("select a scope:").Faint().String(),
 		cc.Scope,
-		cfg.Scopes) // TODO: skip scopes none present?
+		cfg.Scopes,
+	) // TODO: skip scopes none present? Option to add new scope?
 	descModel := tui_description_editor.NewModel(
 		cfg.HeaderMaxLength, cc.Description, cfg.EnforceMaxLength,
 	)
@@ -188,7 +190,7 @@ func (m model) shouldSkip(component componentIndex) bool {
 	}
 }
 
-func (m model) advance() model {
+func (m model) advance() model { // TODO: consider submitting w/in this fn
 	for {
 		m.viewing++
 		if !m.shouldSkip(m.viewing) {
@@ -197,6 +199,7 @@ func (m model) advance() model {
 	}
 	return m
 }
+
 func (m model) submit() model {
 	m.commit[m.viewing] = m.currentComponent().Value()
 	m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())

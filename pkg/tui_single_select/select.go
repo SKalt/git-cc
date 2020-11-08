@@ -28,6 +28,7 @@ type Model struct {
 func (m Model) Init() tea.Cmd {
 	return textinput.Blink(m.textInput)
 }
+
 func NewModel(context string, value string, options []map[string]string) Model {
 	values, hints := []string{}, []string{}
 	for _, option := range options {
@@ -48,7 +49,7 @@ func NewModel(context string, value string, options []map[string]string) Model {
 		Hints:     hints,
 		textInput: input,
 	}
-	result.matched, result.filtered = result.filter("")
+	result.matched, result.filtered = result.filter(value)
 	return result
 }
 func (m *Model) Focus() tea.Cmd {
