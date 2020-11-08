@@ -1,4 +1,4 @@
-package tui_description_editor
+package description_editor
 
 // like what Glow has, but without the markdown-stashing
 

@@ -25,7 +25,7 @@ go install github.com/skalt/git-cc
 <!-- TODO: with apt -->
 <!-- TODO: with rpm -->
 <!-- TODO: with brew -->
-<!-- TODO: with git -->
+<!-- TODO: with git? -->
 
 
 ## Usage

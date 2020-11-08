@@ -1,4 +1,4 @@
-package tui_single_select
+package single_select
 
 import (
 	"strings"

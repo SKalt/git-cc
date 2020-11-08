@@ -1,5 +1,6 @@
-package tui_breaking_change_input
+package breaking_change_input
 
+// TODO: refactor to a better name ^
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"

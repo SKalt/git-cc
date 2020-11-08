@@ -12,11 +12,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/skalt/git-cc/pkg/breaking_change_input"
 	"github.com/skalt/git-cc/pkg/config"
+	"github.com/skalt/git-cc/pkg/description_editor"
 	"github.com/skalt/git-cc/pkg/parser"
-	"github.com/skalt/git-cc/pkg/tui_breaking_change_input"
-	"github.com/skalt/git-cc/pkg/tui_description_editor"
-	"github.com/skalt/git-cc/pkg/tui_single_select"
+	"github.com/skalt/git-cc/pkg/single_select"
 )
 
 type componentIndex int
@@ -50,10 +50,10 @@ type model struct {
 	commit  [doneIndex]string
 	viewing componentIndex
 
-	typeInput           tui_single_select.Model
-	scopeInput          tui_single_select.Model
-	descriptionInput    tui_description_editor.Model
-	breakingChangeInput tui_breaking_change_input.Model
+	typeInput           single_select.Model
+	scopeInput          single_select.Model
+	descriptionInput    description_editor.Model
+	breakingChangeInput breaking_change_input.Model
 
 	choice chan string
 }
@@ -106,12 +106,12 @@ func (m model) currentComponent() InputComponent {
 // function that returns the initialize function and is typically how you would
 // pass arguments to a tea.Init function.
 func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
-	typeModel := tui_single_select.NewModel(
+	typeModel := single_select.NewModel(
 		termenv.String("select a commit type: ").Faint().String(), // context
 		cc.Type, // value
 		cfg.CommitTypes,
 	)
-	scopeModel := tui_single_select.NewModel(
+	scopeModel := single_select.NewModel(
 		termenv.String("select a scope:").Faint().String(),
 		cc.Scope,
 		append(
@@ -119,10 +119,10 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 			cfg.Scopes...,
 		),
 	) // TODO: Option to add new scope?
-	descModel := tui_description_editor.NewModel(
+	descModel := description_editor.NewModel(
 		cfg.HeaderMaxLength, cc.Description, cfg.EnforceMaxLength,
 	)
-	bcModel := tui_breaking_change_input.NewModel()
+	bcModel := breaking_change_input.NewModel()
 	breakingChanges := ""
 	if cc.BreakingChange {
 		for _, footer := range cc.Footers {
@@ -150,6 +150,7 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 		m = m.submit().advance()
 		m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
 	}
+
 	return m
 }
 
