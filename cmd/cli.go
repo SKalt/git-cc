@@ -321,7 +321,7 @@ var Cmd = &cobra.Command{
 		cc, _ = parser.ParseAsMuchOfCCAsPossible(message)
 		valid := cc.MinimallyValid() &&
 			cc.ValidCommitType(cfg.CommitTypes) &&
-			cc.ValidScope(cfg.Scopes)
+			(cc.ValidScope(cfg.Scopes) || cc.Scope == "")
 		if !valid {
 			choice := make(chan string, 1)
 			m := initialModel(choice, cc, cfg)
