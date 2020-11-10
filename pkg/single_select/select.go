@@ -26,7 +26,7 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink(m.textInput)
+	return nil
 }
 
 func NewModel(context string, value string, options []map[string]string) Model {
@@ -54,7 +54,7 @@ func NewModel(context string, value string, options []map[string]string) Model {
 }
 func (m *Model) Focus() tea.Cmd {
 	m.textInput.Focus()
-	return textinput.Blink(m.textInput)
+	return nil
 }
 
 func (m Model) SetErr(err error) Model {
@@ -118,16 +118,16 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 			} else {
 				model.Cursor = len(model.matched) - 1
 			}
-			return model, textinput.Blink(model.textInput)
+			return model, cmd
 		case tea.KeyDown:
 			if model.Cursor < len(model.matched) {
 				model.Cursor += 1
 			} else {
 				model.Cursor = 0
 			}
-			return model, textinput.Blink(model.textInput)
+			return model, cmd
 		default:
-			model.textInput, cmd = textinput.Update(msg, model.textInput)
+			model.textInput, cmd = model.textInput.Update(msg)
 			model.matched, model.filtered = model.filter(model.textInput.Value())
 			model.Cursor = 0
 			return model, cmd
@@ -157,7 +157,7 @@ func wrapLine(left uint, hint string, right int, style func(string) term.Style) 
 func (m Model) View() string {
 	s := strings.Builder{}
 	s.WriteString(m.context + "\n")
-	s.WriteString(textinput.View(m.textInput) + "\n")
+	s.WriteString(m.textInput.View() + "\n")
 	leftGutter := 3 // "   "
 	maxOptLen := m.maxOptLen()
 	leftColumn := (leftGutter + maxOptLen) + 1 // for the space

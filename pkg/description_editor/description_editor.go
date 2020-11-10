@@ -31,7 +31,7 @@ func (m Model) SetErr(err error) Model {
 }
 func (m Model) Focus() tea.Cmd {
 	m.input.Focus()
-	return textinput.Blink(m.input)
+	return nil
 }
 func (m Model) Blur() {
 	m.input.Blur()
@@ -83,21 +83,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyCtrlD:
 			return m, tea.Quit
 		default:
-			m.input, cmd = textinput.Update(msg, m.input)
+			m.input, cmd = m.input.Update(msg)
 			m.input.Focus()
 			return m, cmd
 		}
 	default:
-		m.input, cmd = textinput.Update(msg, m.input)
+		m.input, cmd = m.input.Update(msg)
 		m.input.Focus()
 		return m, cmd
 	}
 }
 
 func (m Model) View() string {
-	return textinput.View(m.input) + "\n" + viewHelpBar(m)
+	return m.input.View() + "\n" + viewHelpBar(m)
 }
 
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink(m.input)
+	return nil // textinput.Blink(m.input)
 }

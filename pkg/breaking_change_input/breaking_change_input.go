@@ -17,12 +17,12 @@ func (m Model) Value() string {
 }
 
 func (m Model) View() string {
-	return textinput.View(m.input) + "\n\n" + config.HelpBar
+	return m.input.View() + "\n\n" + config.HelpBar
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
-	m.input, cmd = textinput.Update(msg, m.input)
+	m.input, cmd = m.input.Update(msg)
 	return m, cmd
 }
 
