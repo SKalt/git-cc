@@ -197,9 +197,5 @@ func (m Model) View() string {
 		s.WriteString("\n")
 	}
 
-	s.WriteString(
-		term.String("\n(tab/enter to select, up/down to navigate, Ctrl+C to quit)\n").Faint().String(),
-	)
-
 	return s.String()
 }

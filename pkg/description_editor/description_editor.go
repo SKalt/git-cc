@@ -11,6 +11,8 @@ import (
 	"github.com/skalt/git-cc/pkg/config"
 )
 
+var helpBar = config.HelpBar(config.HelpSubmit, config.HelpBack, config.HelpCancel)
+
 const prePrompt = "A short description of the changes:\n\n"
 
 type Model struct {
@@ -22,7 +24,7 @@ type Model struct {
 
 func (m Model) SetPrefix(prefix string) Model {
 	m.prefixLen = len(prefix)
-	m.input.Prompt = termenv.String(prePrompt).Faint().String() + prefix
+	m.input.Prompt = config.Faint(prePrompt) + prefix
 	return m
 }
 func (m Model) SetErr(err error) Model {
@@ -45,7 +47,7 @@ func NewModel(lengthLimit int, value string, enforced bool) Model {
 	input.SetValue(value)
 	input.SetCursor(len(value))
 	// input.Cursor = len(value)
-	input.Prompt = termenv.String(prePrompt).Faint().String()
+	input.Prompt = config.Faint(prePrompt)
 	if enforced {
 		input.CharLimit = lengthLimit
 	}
@@ -62,7 +64,7 @@ func viewCounter(m Model) string {
 	paddedFormat := fmt.Sprintf("(%%%dd/%d)", len(fmt.Sprintf("%d", m.lengthLimit)), m.lengthLimit)
 	view := fmt.Sprintf(paddedFormat, current)
 	if current < m.lengthLimit {
-		return termenv.String(view).Faint().String()
+		return config.Faint(view)
 	} else if current == m.lengthLimit {
 		return view // render in a warning color termenv.String(view).
 	} else {
@@ -71,7 +73,7 @@ func viewCounter(m Model) string {
 }
 
 func viewHelpBar(m Model) string {
-	return fmt.Sprintf("\n%s %s", config.HelpBar, viewCounter(m))
+	return fmt.Sprintf("\n%s %s", helpBar, viewCounter(m))
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {

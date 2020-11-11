@@ -28,8 +28,22 @@ var (
 		{"refactor": "changes the code without changing behavior"},
 		{"revert": "reverts prior changes"},
 	}
-	HelpBar = termenv.String("submit: enter; go back: shift+tab; cancel: ctrl+c").Faint().String()
 )
+
+const (
+	HelpSubmit = "submit: tab/enter"
+	HelpBack   = "go back: shift+tab"
+	HelpCancel = "cancel: ctrl+c"
+	HelpSelect = "navigate: up/down"
+)
+
+func Faint(s string) string {
+	return termenv.String(s).Faint().String()
+}
+
+func HelpBar(s ...string) string {
+	return Faint(fmt.Sprintf("\n%s", strings.Join(s, "; ")))
+}
 
 type Cfg struct {
 	CommitTypes     []map[string]string `mapstructure:"commit_types"`

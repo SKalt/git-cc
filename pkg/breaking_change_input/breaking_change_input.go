@@ -2,6 +2,8 @@ package breaking_change_input
 
 // TODO: refactor to a better name ^
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/termenv"
@@ -12,12 +14,16 @@ type Model struct {
 	input textinput.Model
 }
 
+var helpBar = termenv.String(strings.Join(
+	[]string{config.HelpSubmit, config.HelpBack, config.HelpCancel}, "; "),
+).Faint().String()
+
 func (m Model) Value() string {
 	return m.input.Value()
 }
 
 func (m Model) View() string {
-	return m.input.View() + "\n\n" + config.HelpBar
+	return m.input.View() + "\n\n" + helpBar + "\n"
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {

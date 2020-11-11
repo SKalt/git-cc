@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/muesli/termenv"
 	"github.com/skalt/git-cc/pkg/breaking_change_input"
 	"github.com/skalt/git-cc/pkg/config"
 	"github.com/skalt/git-cc/pkg/description_editor"
 	"github.com/skalt/git-cc/pkg/parser"
-	"github.com/skalt/git-cc/pkg/single_select"
+	"github.com/skalt/git-cc/pkg/scope_selector"
+	"github.com/skalt/git-cc/pkg/type_selector"
 )
 
 type componentIndex int
@@ -32,21 +32,14 @@ var (
 type InputComponent interface {
 	View() string
 	Value() string
-
-	// Update(tea.Msg) (tea.Model, tea.Cmd)
-	// // tea.Model       // Init() tea.Cmd, Update(tea.Msg) (tea.Model, tea.Cmd), View() string
-	// Focus() tea.Cmd // should focus any internals, i.e. text inputs
-	// // Cancel()  // should clean up any resources (i.e. open channels)
-	// Submit()  // send the input to the output channel
 }
 
 type model struct {
-	// components [done]InputComponent
 	commit  [doneIndex]string
 	viewing componentIndex
 
-	typeInput           single_select.Model
-	scopeInput          single_select.Model
+	typeInput           type_selector.Model
+	scopeInput          scope_selector.Model
 	descriptionInput    description_editor.Model
 	breakingChangeInput breaking_change_input.Model
 
@@ -101,19 +94,8 @@ func (m model) currentComponent() InputComponent {
 // function that returns the initialize function and is typically how you would
 // pass arguments to a tea.Init function.
 func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
-	typeModel := single_select.NewModel(
-		termenv.String("select a commit type: ").Faint().String(), // context
-		cc.Type, // value
-		cfg.CommitTypes,
-	)
-	scopeModel := single_select.NewModel(
-		termenv.String("select a scope:").Faint().String(),
-		cc.Scope,
-		append(
-			[]map[string]string{{"": "unscoped; affects the entire project"}},
-			cfg.Scopes...,
-		),
-	) // TODO: Option to add new scope?
+	typeModel := type_selector.NewModel(cc, cfg)
+	scopeModel := scope_selector.NewModel(cc, cfg)
 	descModel := description_editor.NewModel(
 		cfg.HeaderMaxLength, cc.Description, cfg.EnforceMaxLength,
 	)
@@ -145,7 +127,6 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 		m = m.submit().advance()
 		m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
 	}
-
 	return m
 }
 
@@ -166,24 +147,9 @@ func (m model) updateCurrentInput(msg tea.Msg) model {
 func (m model) shouldSkip(component componentIndex) bool {
 	switch component {
 	case commitTypeIndex:
-		commitType := m.commit[commitTypeIndex]
-		for _, opt := range m.typeInput.Options {
-			if commitType == opt {
-				return true
-			}
-		}
-		return false
+		return m.typeInput.ShouldSkip(m.commit[commitTypeIndex])
 	case scopeIndex:
-		if len(m.scopeInput.Options) == 0 {
-			return true
-		}
-		scope := m.commit[scopeIndex]
-		for _, opt := range m.scopeInput.Options {
-			if scope == opt && opt != "" {
-				return true
-			}
-		}
-		return false
+		return m.scopeInput.ShouldSkip(m.commit[scopeIndex])
 	default:
 		return false
 	}
@@ -218,7 +184,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewing--
 			}
 			return m, cmd
-		case tea.KeyEnter:
+		case tea.KeyEnter, tea.KeyTab:
 			switch m.viewing {
 			default:
 				m = m.submit().advance()
