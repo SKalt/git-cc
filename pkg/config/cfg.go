@@ -105,14 +105,19 @@ func getGitVar(var_name string) (string, error) {
 	}
 }
 
+func GetEditor() string {
+	editor := os.Getenv("EDITOR")
+	if editor != "" {
+		return editor
+	}
+	return "vi"
+}
+
 // search GIT_EDITOR, then fall back to $EDITOR
 func GetGitEditor() string {
 	editor, err := getGitVar("GIT_EDITOR") // TODO: shell-split the string
 	if err != nil {
-		editor = os.Getenv("EDITOR")
-		if editor == "" {
-			log.Fatal(fmt.Errorf("unable to look up `git var GIT_EDITOR` or `$EDITOR`"))
-		}
+		return GetEditor()
 	}
 	return editor
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -64,6 +65,18 @@ func mainMode(cmd *cobra.Command, args []string) {
 	cfg := config.Lookup(config.Init())
 	commitParams := getGitCommitCmd(cmd)
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		buf := &bytes.Buffer{}
+		process := exec.Command("git", "diff", "--name-only", "--cached")
+		process.Stdout = buf
+		err := process.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if buf.String() == "" {
+			log.Fatal("No files staged")
+		}
+	}
 
 	cc := &parser.CC{}
 	message, _ := cmd.Flags().GetString("message")
