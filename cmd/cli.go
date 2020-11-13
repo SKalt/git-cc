@@ -65,7 +65,8 @@ func mainMode(cmd *cobra.Command, args []string) {
 	cfg := config.Lookup(config.Init())
 	commitParams := getGitCommitCmd(cmd)
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	if !dryRun {
+	committingAllChanges, _ := cmd.Flags().GetBool("all")
+	if !dryRun && !committingAllChanges {
 		buf := &bytes.Buffer{}
 		process := exec.Command("git", "diff", "--name-only", "--cached")
 		process.Stdout = buf
