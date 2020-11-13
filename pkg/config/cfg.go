@@ -28,6 +28,7 @@ var (
 		{"refactor": "changes the code without changing behavior"},
 		{"revert": "reverts prior changes"},
 	}
+	CentralStore *viper.Viper
 )
 
 const (
@@ -56,22 +57,22 @@ type Cfg struct {
 // viper: need to deserialize YAML commit-type options
 // viper: need to deserialize YAML scope options
 func Init() *viper.Viper {
-	cfg := viper.New()
-	cfg.SetConfigName("commit_convention")
-	cfg.SetConfigType("yaml")
-	cfg.AddConfigPath(".")
-	cfg.AddConfigPath("$HOME")
+	CentralStore = viper.New()
+	CentralStore.SetConfigName("commit_convention")
+	CentralStore.SetConfigType("yaml")
+	CentralStore.AddConfigPath(".")
+	CentralStore.AddConfigPath("$HOME")
 
-	cfg.SetDefault("commit_types", AngularPresetCommmitTypes)
-	cfg.SetDefault("scopes", map[string]string{})
-	cfg.SetDefault("header_max_length", 72)
-	cfg.SetDefault("enforce_header_max_length", false)
+	CentralStore.SetDefault("commit_types", AngularPresetCommmitTypes)
+	CentralStore.SetDefault("scopes", map[string]string{})
+	CentralStore.SetDefault("header_max_length", 72)
+	CentralStore.SetDefault("enforce_header_max_length", false)
 	// s.t. git log --oneline should remain within 80 columns w/ a 7-rune
 	// commit hash and one space before the commit message.
 	// this caps the max len of the `type(scope): description`, not the body
 	// TODO: use env vars?
 
-	return cfg
+	return CentralStore
 }
 
 func Lookup(cfg *viper.Viper) Cfg {
@@ -131,4 +132,18 @@ func GetCommitMessageFile() string {
 		log.Fatal(err)
 	}
 	return strings.TrimRight(out.String(), " \t\r\n") + string(os.PathSeparator) + "COMMIT_EDITMSG"
+}
+
+func EditCfgFile(cfg *viper.Viper) Cfg {
+	editCmd := []string{}
+	for _, part := range strings.Split(GetEditor(), " ") {
+		if part != "" {
+			editCmd = append(editCmd, part)
+		}
+	}
+	editCmd = append(editCmd, cfg.ConfigFileUsed())
+	cmd := exec.Command(editCmd[0], editCmd[1:]...)
+	cmd.Stdin, cmd.Stdout = os.Stdin, os.Stderr
+	cmd.Run() // ignore errors
+	return Lookup(cfg)
 }

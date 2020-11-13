@@ -14,6 +14,7 @@ import (
 type Model struct {
 	Options         []string
 	Hints           []string
+	match           func(*Model, string, string) bool
 	filtered        [][2]string
 	matched         [][2]string
 	Cursor          int
@@ -29,7 +30,7 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func NewModel(context string, value string, options []map[string]string) Model {
+func NewModel(context string, value string, options []map[string]string, match func(*Model, string, string) bool) Model {
 	values, hints := []string{}, []string{}
 	for _, option := range options {
 		for value, hint := range option {
@@ -48,6 +49,7 @@ func NewModel(context string, value string, options []map[string]string) Model {
 		Options:   values,
 		Hints:     hints,
 		textInput: input,
+		match:     match,
 	}
 	result.matched, result.filtered = result.filter(value)
 	return result
@@ -56,7 +58,9 @@ func (m *Model) Focus() tea.Cmd {
 	m.textInput.Focus()
 	return nil
 }
-
+func (m *Model) Match(query string, option string) bool {
+	return m.match(m, query, option)
+}
 func (m Model) SetErr(err error) Model {
 	m.textInput.Err = err
 	return m
@@ -84,14 +88,18 @@ func (m Model) maxOptLen() int {
 	return max
 }
 
+func MatchStart(m *Model, query string, option string) bool {
+	return len(query) <= len(option) && option[0:len(query)] == query
+}
+
 func (m Model) filter(startingWith string) ([][2]string, [][2]string) {
 	matched, filtered := [][2]string{}, [][2]string{}
 	for i, opt := range m.Options {
 		hint := m.Hints[i]
-		if len(opt) < len(startingWith) || opt[0:len(startingWith)] != startingWith {
-			filtered = append(filtered, [2]string{opt, hint})
-		} else {
+		if m.Match(startingWith, opt) {
 			matched = append(matched, [2]string{opt, hint})
+		} else {
+			filtered = append(filtered, [2]string{opt, hint})
 		}
 	}
 	return matched, filtered
@@ -120,7 +128,7 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 			}
 			return model, cmd
 		case tea.KeyDown:
-			if model.Cursor < len(model.matched) {
+			if model.Cursor < len(model.matched)-1 {
 				model.Cursor += 1
 			} else {
 				model.Cursor = 0

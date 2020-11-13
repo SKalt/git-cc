@@ -19,6 +19,7 @@ func NewModel(cc *parser.CC, cfg config.Cfg) Model {
 	return Model{
 		single_select.NewModel(
 			config.Faint("select a commit type: "), cc.Type, cfg.CommitTypes,
+			single_select.MatchStart,
 		),
 	}
 }
