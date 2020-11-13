@@ -15,6 +15,16 @@ import (
 	"github.com/skalt/git-cc/pkg/parser"
 )
 
+var version string
+
+func SetVersion(v string) {
+	version = v
+}
+
+func versionMode() {
+	fmt.Printf("git-cc %s\n", version)
+}
+
 func getGitCommitCmd(cmd *cobra.Command) []string {
 	commitCmd := []string{}
 	// TODO: check message not passed
@@ -122,6 +132,11 @@ var Cmd = &cobra.Command{
 	Use:   "git-cc",
 	Short: "write conventional commits",
 	Run: func(cmd *cobra.Command, args []string) {
+		version, _ := cmd.Flags().GetBool("version")
+		if version {
+			versionMode()
+			os.Exit(0)
+		}
 		genCompletion, _ := cmd.Flags().GetBool("generate-shell-completion")
 		if genCompletion {
 			generateShellCompletion(cmd, args)
@@ -140,7 +155,7 @@ func init() {
 	Cmd.Flags().BoolP("help", "h", false, "print the usage of git-cc")
 	Cmd.Flags().Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
 	Cmd.Flags().StringP("message", "m", "", "pass a complete conventional commit. If valid, it'll be committed without editing.")
-
+	Cmd.Flags().Bool("version", false, "print the version")
 	// TODO: use git commit's flags; see https://git-scm.com/docs/git-commit
 	// --amend ... might be better manually?
 	// --no-edit

@@ -1,0 +1,10 @@
+# not present: commit_types: using the default angular-style commit types 
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (nice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
