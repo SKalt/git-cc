@@ -55,7 +55,7 @@ func generateManPage(cmd *cobra.Command, args []string) {
 	process.Stdout = &out
 	err := process.Run()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("unable to deterimine manpath: %+v", err)
 	}
 	manpath := strings.Split(out.String(), ":")
 	for _, place := range manpath {

@@ -48,25 +48,24 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 	f := config.GetCommitMessageFile()
 	file, err := os.Create(f)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("unable to create %s: %+v", f, err)
 	}
 	_, err = file.Write([]byte(message))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("unable to write to %s: %+v", f, err)
 	}
 	if dryRun {
 		fmt.Println(message)
 		return
 	}
-	process := exec.Command("git", append([]string{
-		"commit", "--message", message},
-		commitParams...)...)
+	cmd := append([]string{"git", "commit", "--message", message}, commitParams...)
+	process := exec.Command(cmd[0], cmd[1:]...)
 	process.Stdin = os.Stdin
 	process.Stdout = os.Stdout
 	if !dryRun {
 		err = process.Run()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("failed running `%+v`: %+v", cmd, err)
 		} else {
 			os.Exit(0)
 		}
@@ -85,7 +84,7 @@ func mainMode(cmd *cobra.Command, args []string) {
 		process.Stdout = buf
 		err := process.Run()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("fatal: not a git repository (or any of the parent directories): .git; %+v", err)
 		}
 		if buf.String() == "" {
 			log.Fatal("No files staged")
@@ -116,11 +115,11 @@ func mainMode(cmd *cobra.Command, args []string) {
 			f := config.GetCommitMessageFile()
 			file, err := os.Create(f)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("unable to create fil %s: %+v", f, err)
 			}
 			_, err = file.Write([]byte(result))
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("unable to write to file %s: %+v", f, err)
 			}
 			doCommit(result, dryRun, commitParams)
 		}
