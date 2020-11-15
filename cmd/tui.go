@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -22,7 +21,7 @@ const ( // the order of the components
 	shortDescriptionIndex
 	breakingChangeIndex
 	// body omitted -- performed by GIT_EDITOR
-	doneIndex
+	nIndices // the number of indices
 )
 
 var (
@@ -35,7 +34,7 @@ type InputComponent interface {
 }
 
 type model struct {
-	commit  [doneIndex]string
+	commit  [nIndices]string
 	viewing componentIndex
 
 	typeInput           type_selector.Model
@@ -46,10 +45,12 @@ type model struct {
 	choice chan string
 }
 
+// returns whether the minimum requirements for a conventional commit are met.
 func (m model) ready() bool {
 	return len(m.commit[commitTypeIndex]) > 0 && len(m.commit[shortDescriptionIndex]) > 0
 }
 
+// returns the context portion of the CC header, e.g `type(scope): `.
 func (m model) contextValue() string {
 	result := strings.Builder{}
 	result.WriteString(m.commit[commitTypeIndex])
@@ -64,6 +65,8 @@ func (m model) contextValue() string {
 	result.WriteString(": ")
 	return result.String()
 }
+
+// Returns a pretty-printed CC string. The model should be `.ready()` before you call `.value()`.
 func (m model) value() string {
 	result := strings.Builder{}
 	result.WriteString(m.contextValue())
@@ -109,7 +112,7 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 			}
 		}
 	}
-	commit := [doneIndex]string{
+	commit := [nIndices]string{
 		cc.Type,
 		cc.Scope,
 		cc.Description,
@@ -209,9 +212,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return m, cmd
 				}
-			case doneIndex:
-				fmt.Printf("%d > done", m.viewing)
-				os.Exit(1)
 			}
 			return m, cmd
 		default:

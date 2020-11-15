@@ -25,9 +25,10 @@ func versionMode() {
 	fmt.Printf("git-cc %s\n", version)
 }
 
+// construct a shell `git commit` command with flags delegated from the git-cc
+// cli
 func getGitCommitCmd(cmd *cobra.Command) []string {
 	commitCmd := []string{}
-	// TODO: check message not passed
 	noEdit, _ := cmd.Flags().GetBool("no-edit")
 	message, _ := cmd.Flags().GetString("message")
 	for _, name := range boolFlags {
@@ -42,6 +43,7 @@ func getGitCommitCmd(cmd *cobra.Command) []string {
 	return commitCmd
 }
 
+// run a potentially interactive `git commit`
 func doCommit(message string, dryRun bool, commitParams []string) {
 	f := config.GetCommitMessageFile()
 	file, err := os.Create(f)
@@ -71,6 +73,7 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 	}
 }
 
+// run the conventional-commit helper logic. This may/not break into the TUI.
 func mainMode(cmd *cobra.Command, args []string) {
 	cfg := config.Lookup(config.Init())
 	commitParams := getGitCommitCmd(cmd)
@@ -91,9 +94,7 @@ func mainMode(cmd *cobra.Command, args []string) {
 
 	cc := &parser.CC{}
 	message, _ := cmd.Flags().GetString("message")
-	// mPassed := false
 	if len(message) > 0 {
-		// mPassed = true
 		message += " "
 	}
 	message = message + strings.Join(args, " ")
@@ -131,6 +132,7 @@ func mainMode(cmd *cobra.Command, args []string) {
 var Cmd = &cobra.Command{
 	Use:   "git-cc",
 	Short: "write conventional commits",
+	// not using cobra subcommands since they prevent passing arbitrary arguments
 	Run: func(cmd *cobra.Command, args []string) {
 		version, _ := cmd.Flags().GetBool("version")
 		if version {
@@ -156,23 +158,11 @@ func init() {
 	Cmd.Flags().Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
 	Cmd.Flags().StringP("message", "m", "", "pass a complete conventional commit. If valid, it'll be committed without editing.")
 	Cmd.Flags().Bool("version", false, "print the version")
-	// TODO: use git commit's flags; see https://git-scm.com/docs/git-commit
-	// --amend ... might be better manually?
-	// --no-edit
-	// -C <commit>
-	// --reuse-message=<commit>
-	// Take an existing commit object, and reuse the log message and the authorship information (including the timestamp) when creating the commit.
-	// -c <commit>
-	// --reedit-message=<commit>
-	// Like -C, but with -c the editor is invoked, so that the user can further edit the commit message.
-	// --fixup=<commit>
-	// Construct a commit message for use with rebase --autosquash. The commit message will be the subject line from the specified commit with a prefix of "fixup! ". See git-rebase[1] for details.
-	// --squash=<commit>
-	// Construct a commit message for use with rebase --autosquash. The commit message subject line is taken from the specified commit with a prefix of "squash! ". Can be used with additional commit message options (-m/-c/-C/-F). See git-rebase[1] for details.
-	// -short
-	// When doing a dry-run, give the output in the short-format. See git-status[1] for details. Implies --dry-run.
-	// --cleanup=<mode>
-	// This option determines how the supplied commit message should be cleaned up before committing. The <mode> can be strip, whitespace, verbatim, scissors or default.
+	// TODO: accept more of git commit's flags; see https://git-scm.com/docs/git-commit
+	// likely: --cleanup=<mode>
+	// more difficult, and possibly better done manually: --amend, -C <commit>
+	// --reuse-message=<commit>, -c <commit>, --reedit-message=<commit>,
+	// --fixup=<commit>, --squash=<commit>
 	Cmd.Flags().String("author", "", "delegated to git-commit")
 	Cmd.Flags().String("date", "", "delegated to git-commit")
 	Cmd.Flags().BoolP("all", "a", false, "see the git-commit docs for --all|-a")

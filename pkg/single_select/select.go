@@ -153,7 +153,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return Update(msg, m)
 }
 
-func wrapLine(left uint, hint string, right int, style func(string) term.Style) string {
+func wrapLine(
+	left uint,
+	hint string,
+	right int,
+	style func(string) term.Style,
+) string {
 	lines := strings.SplitN(wordwrap.String(hint, right), "\n", 2)
 	result := style(lines[0]).String()
 	if len(lines) > 1 {

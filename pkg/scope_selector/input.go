@@ -15,6 +15,7 @@ type Model struct {
 	input single_select.Model
 }
 
+// the method for determining if the current input matches an option.
 func match(m *single_select.Model, query string, option string) bool {
 	if option == "new scope" {
 		for _, opt := range m.Options {
@@ -27,6 +28,8 @@ func match(m *single_select.Model, query string, option string) bool {
 		return single_select.MatchStart(m, query, option)
 	}
 }
+
+// given options from config, add the leading "unscoped" and trailing "new scope" options
 func makeOptions(options []map[string]string) []map[string]string {
 	return append(append(
 		[]map[string]string{{"": "unscoped; affects the entire project"}},
@@ -34,6 +37,7 @@ func makeOptions(options []map[string]string) []map[string]string {
 	), map[string]string{"new scope": "edit a new scope into your configuration file"})
 }
 
+// should return two slices of string of equal size.
 func makeOptHintPair(options []map[string]string) ([]string, []string) {
 	values, hints := []string{}, []string{}
 	for _, option := range options {
@@ -52,7 +56,7 @@ func NewModel(cc *parser.CC, cfg config.Cfg) Model {
 			cc.Scope,
 			makeOptions(cfg.Scopes),
 			match,
-		), // TODO: Option to add new scope?
+		),
 	}
 }
 

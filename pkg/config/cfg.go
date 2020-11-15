@@ -93,16 +93,20 @@ func Lookup(cfg *viper.Viper) Cfg {
 	}
 	return data
 }
-
-func getGitVar(var_name string) (string, error) {
-	cmd := exec.Command("git", "var", var_name)
+func stdoutFrom(args ...string) (string, error) {
+	cmd := exec.Command(args[0], args[1:]...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
+	return out.String(), err
+}
+
+func getGitVar(var_name string) (string, error) {
+	out, err := stdoutFrom("git", "var", var_name)
 	if err != nil {
 		return "", err
 	} else {
-		return strings.TrimRight(out.String(), " \t\r\n"), err
+		return strings.TrimRight(out, " \t\r\n"), err
 	}
 }
 
@@ -124,23 +128,26 @@ func GetGitEditor() string {
 }
 
 func GetCommitMessageFile() string {
-	cmd := exec.Command("git", "rev-parse", "--absolute-git-dir")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
+	out, err := stdoutFrom("git", "rev-parse", "--absolute-git-dir")
 	if err != nil {
 		log.Fatal(err)
 	}
-	return strings.TrimRight(out.String(), " \t\r\n") + string(os.PathSeparator) + "COMMIT_EDITMSG"
+	return strings.Join(
+		[]string{strings.TrimRight(out, " \t\r\n"), "COMMIT_EDITMSG"},
+		string(os.PathSeparator),
+	)
 }
 
+// interactively edit the config file, if any was used.
 func EditCfgFile(cfg *viper.Viper) Cfg {
 	editCmd := []string{}
+	// sometimes $EDITOR can be a script with spaces, like `code --wait`
 	for _, part := range strings.Split(GetEditor(), " ") {
 		if part != "" {
 			editCmd = append(editCmd, part)
 		}
 	}
+	// TODO: if no config file is present, either fail or create one.
 	editCmd = append(editCmd, cfg.ConfigFileUsed())
 	cmd := exec.Command(editCmd[0], editCmd[1:]...)
 	cmd.Stdin, cmd.Stdout = os.Stdin, os.Stderr

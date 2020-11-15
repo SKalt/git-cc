@@ -13,13 +13,21 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
-// Long: ,
+// run when the CLI is passed --generate-shell-completion [bash|fish|powershell|zsh]
 func generateShellCompletion(cmd *cobra.Command, args []string) {
 	var shell string
-	if len(args) > 0 {
+	switch len(args) {
+	case 1:
 		shell = args[0]
-	} else {
+		break
+	case 0:
 		shell = path.Base(os.Getenv("SHELL"))
+		break
+	default:
+		log.Fatalf(
+			"expecting one argument, bash|fish|powershell|zsh; %d args passed (%+v)",
+			len(args), args,
+		)
 	}
 	switch shell {
 	case "bash":
@@ -35,6 +43,7 @@ func generateShellCompletion(cmd *cobra.Command, args []string) {
 	}
 }
 
+// put a manpage in the first available location on the manpath
 func generateManPage(cmd *cobra.Command, args []string) {
 	root := cmd.Root()
 	header := &doc.GenManHeader{
@@ -57,6 +66,6 @@ func generateManPage(cmd *cobra.Command, args []string) {
 	}
 	if err != nil {
 		log.Fatal(err)
-	}
-	// done, otherwise
+	} // else we're done; Cmd#Run handles exiting 0.
+	// IDEA: consider adding a --dry-run option, perhaps printing to stdout.
 }

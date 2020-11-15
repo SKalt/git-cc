@@ -10,47 +10,32 @@ go install github.com/skalt/git-cc
 ```
 
 </details>
-
-<!-- TODO: with npm -->
-<!-- TODO: with yarn -->
-<!-- TODO: with pnpm -->
-
-<!-- TODO: with pip -->
-<!-- TODO: with pipenv -->
-<!-- TODO: with poetry -->
-<!-- TODO: with conda -->
-
-<!-- TODO: with cargo? -->
-
-<!-- TODO: with apt -->
-<!-- TODO: with rpm -->
-<!-- TODO: with brew -->
-<!-- TODO: with git? -->
-
+<!-- TODO: deb/apk/rpm instructions -->
 
 ## Usage
 
+<!-- TODO: gif/video of usage  -->
 ```sh
+# you can invoke either of the below to
 # interactively write a conventional commit
-git cc               # in its entirety
-git cc feat          # from the commit-type onwards
-git cc 'feat(scope)' # from the    scope    onwards
+git conventional-commit
+git cc
+
+git cc feat          # start after the commit-type
+git cc 'feat(scope)' # start after the scope
 
 # or validate your conventional commit
 git cc feat: added conventional commits # ok! creates a commit
-git cc feat add a typo                  # starts interaction at the scope
 git cc 'feat(cli): added a conventional commit' # ok! creates a commit
+git cc feat add a typo  # starts interaction at the scope
+git cc -m "invalid(stuff): should return 1"
 ```
 
-<!-- 
-## Why Conventional Commits?
-The cool kids are doing it.
-Plus, `cc`s make good, `grep`pable changelogs. -->
-
-## Why An Interactive Cli? 
+## Why write conventional commits through an interactive CLI? 
 Figuring out what to write for an informative commit can be difficult.
 The convential commits standard helps figure out what to write.
-An interactive prompts helps with following the standard.
+As a bonus, conventional commits facilitate generating changelogs and semantic version increments.
+An interactive command-line application helps with following the standard.
 
 <details><summary>Some parts of the conventional commit standard require quoting to work on the command-line.</summary>
 
@@ -66,6 +51,7 @@ Prior art:
 - [`committizen`][commitizen]
 - [`commitsar`][commitsar]
 
+<!-- links -->
 [cc-standard]: https://www.conventionalcommits.org/en/v1.0.0/
 
 [commitizen]: https://github.com/commitizen/cz-cli

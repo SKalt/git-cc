@@ -34,6 +34,7 @@ nfpms:
     # licence: UNLICENSED
     homepage: https://github.com/skalt/git-cc
     description: a git extension to help write conventional commits
+    depends: [git]
     formats:
       - apk
       - deb

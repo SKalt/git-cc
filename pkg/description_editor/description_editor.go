@@ -35,9 +35,6 @@ func (m Model) Focus() tea.Cmd {
 	m.input.Focus()
 	return nil
 }
-func (m Model) Blur() {
-	m.input.Blur()
-}
 func (m Model) Value() string {
 	return m.input.Value()
 }
@@ -61,14 +58,16 @@ func NewModel(lengthLimit int, value string, enforced bool) Model {
 
 func viewCounter(m Model) string {
 	current := m.prefixLen + len(m.input.Value())
-	paddedFormat := fmt.Sprintf("(%%%dd/%d)", len(fmt.Sprintf("%d", m.lengthLimit)), m.lengthLimit)
+	paddedFormat := fmt.Sprintf(
+		"(%%%dd/%d)", len(fmt.Sprintf("%d", m.lengthLimit)), m.lengthLimit,
+	)
 	view := fmt.Sprintf(paddedFormat, current)
 	if current < m.lengthLimit {
 		return config.Faint(view)
 	} else if current == m.lengthLimit {
 		return view // render in a warning color termenv.String(view).
-	} else {
-		return termenv.String(view).Underline().String() // render in an alert color
+	} else { // render in an alert color
+		return termenv.String(view).Underline().String()
 	}
 }
 
