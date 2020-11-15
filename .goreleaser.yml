@@ -34,8 +34,12 @@ nfpms:
     # licence: UNLICENSED
     homepage: https://github.com/skalt/git-cc
     description: a git extension to help write conventional commits
-    depends: [git]
+    # waiting on changes related to https://github.com/goreleaser/goreleaser/issues/1829 
+    # depends: [git]
+    # symlinks:
+    #   /usr/local/bin/git-cc: /usr/local/bin/git-conventional-commit
     formats:
       - apk
       - deb
       - rpm
+      # it'd be neat to have npm, gem, and pypi packages as well! 
