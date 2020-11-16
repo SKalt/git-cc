@@ -147,8 +147,15 @@ func EditCfgFile(cfg *viper.Viper) Cfg {
 			editCmd = append(editCmd, part)
 		}
 	}
-	// TODO: if no config file is present, either fail or create one.
-	editCmd = append(editCmd, cfg.ConfigFileUsed())
+	cfgFile := cfg.ConfigFileUsed()
+	if cfgFile == "" {
+		cfgFile = "commit_convention.yml"
+		_, err := os.Create(cfgFile)
+		if err != nil {
+			log.Fatalf("unable to create file %s: %+v", cfgFile, err)
+		}
+	}
+	editCmd = append(editCmd, cfgFile)
 	cmd := exec.Command(editCmd[0], editCmd[1:]...)
 	cmd.Stdin, cmd.Stdout = os.Stdin, os.Stderr
 	cmd.Run() // ignore errors
