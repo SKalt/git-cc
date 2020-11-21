@@ -12,6 +12,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+const ExampleCfgFileHeader = `## commit_convention.yml
+## omit the commit_types to use the default angular-style commit types`
+const ExampleCfgFileCommitTypes = `
+# commit_types:
+#   - type: description of what the short-form "type" means`
+const ExampleCfgFileScopes = `
+# scopes:
+#   - scope: description of what the short-form "scope" represents`
+const ExampleCfgFile = ExampleCfgFileHeader + ExampleCfgFileCommitTypes + ExampleCfgFileScopes
+
 var (
 	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
 	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
@@ -139,7 +149,7 @@ func GetCommitMessageFile() string {
 }
 
 // interactively edit the config file, if any was used.
-func EditCfgFile(cfg *viper.Viper) Cfg {
+func EditCfgFile(cfg *viper.Viper, defaultFileContent string) Cfg {
 	editCmd := []string{}
 	// sometimes $EDITOR can be a script with spaces, like `code --wait`
 	for _, part := range strings.Split(GetEditor(), " ") {
@@ -150,9 +160,13 @@ func EditCfgFile(cfg *viper.Viper) Cfg {
 	cfgFile := cfg.ConfigFileUsed()
 	if cfgFile == "" {
 		cfgFile = "commit_convention.yml"
-		_, err := os.Create(cfgFile)
+		f, err := os.Create(cfgFile)
 		if err != nil {
 			log.Fatalf("unable to create file %s: %+v", cfgFile, err)
+		}
+		_, err = f.WriteString(fmt.Sprintf(defaultFileContent))
+		if err != nil {
+			log.Fatalf("unable to write to file: %v", err)
 		}
 	}
 	editCmd = append(editCmd, cfgFile)

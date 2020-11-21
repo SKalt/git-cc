@@ -1,6 +1,8 @@
 package scope_selector
 
 import (
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/skalt/git-cc/pkg/config"
 	"github.com/skalt/git-cc/pkg/parser"
@@ -10,6 +12,9 @@ import (
 var helpBar = config.HelpBar(
 	config.HelpSubmit, config.HelpSelect, config.HelpBack, config.HelpCancel,
 )
+
+const emptyScopeTemplate = "scopes:\n%s\n"
+const newScopeTemplate = "  %s: description of what short-form \"%s\" represents"
 
 type Model struct {
 	input single_select.Model
@@ -75,7 +80,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter, tea.KeyTab:
 			if m.Value() == "new scope" {
-				cfg := config.EditCfgFile(config.CentralStore)
+				newScope := m.input.CurrentInput()
+				cfg := config.EditCfgFile(
+					config.CentralStore,
+					config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
+						emptyScopeTemplate,
+						fmt.Sprintf(newScopeTemplate, newScope, newScope),
+					),
+				)
 				values, hints := makeOptHintPair(makeOptions(cfg.Scopes))
 				m.input.Options = values
 				m.input.Hints = hints

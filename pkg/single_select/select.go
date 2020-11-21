@@ -113,6 +113,10 @@ func (m Model) Value() string {
 	}
 }
 
+func (m Model) CurrentInput() string {
+	return m.textInput.Value()
+}
+
 func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
