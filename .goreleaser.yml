@@ -11,13 +11,12 @@ builds:
       - linux
       - windows
       - darwin
+    goarch:
+      - "386"
+      - arm64
+      - amd64
+
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -31,7 +30,6 @@ changelog:
 # https://github.com/goreleaser/nfpm; https://goreleaser.com/customization/nfpm/
 nfpms:
   - maintainer: Steven Kalt
-    # licence: UNLICENSED
     homepage: https://github.com/skalt/git-cc
     description: a git extension to help write conventional commits
     # waiting on changes related to https://github.com/goreleaser/goreleaser/issues/1829 
@@ -39,7 +37,6 @@ nfpms:
     # symlinks:
     #   /usr/local/bin/git-cc: /usr/local/bin/git-conventional-commit
     formats:
-      - apk
       - deb
       - rpm
       # it'd be neat to have npm, gem, and pypi packages as well! 
