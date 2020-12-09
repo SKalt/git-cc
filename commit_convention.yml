@@ -8,3 +8,4 @@ scopes:
   # explanation of each commit_type/scope.
   - parser: parses conventional commits
   - cli: UI for command-line invocation
+  - dist: the release; means of distribution

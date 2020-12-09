@@ -34,8 +34,8 @@ nfpms:
     description: a git extension to help write conventional commits
     # waiting on changes related to https://github.com/goreleaser/goreleaser/issues/1829 
     # depends: [git]
-    # symlinks:
-    #   /usr/local/bin/git-cc: /usr/local/bin/git-conventional-commit
+    symlinks:
+      /usr/local/bin/git-conventional-commit: /usr/local/bin/git-cc
     formats:
       - deb
       - rpm
