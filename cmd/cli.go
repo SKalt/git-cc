@@ -62,6 +62,7 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 	process := exec.Command(cmd[0], cmd[1:]...)
 	process.Stdin = os.Stdin
 	process.Stdout = os.Stdout
+	process.Stderr = os.Stderr
 	if !dryRun {
 		err = process.Run()
 		if err != nil {
