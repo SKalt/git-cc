@@ -93,12 +93,14 @@ func mainMode(cmd *cobra.Command, args []string) {
 	}
 
 	cc := &parser.CC{}
-	message, _ := cmd.Flags().GetString("message")
+
+	message, _ := cmd.Flags().GetStringArray("message")
+
 	if len(message) > 0 {
-		message += " "
+		cc, _ = parser.ParseAsMuchOfCCAsPossible(strings.Join(message, "\n\n"))
+	} else {
+		cc, _ = parser.ParseAsMuchOfCCAsPossible((strings.Join(args, " ")))
 	}
-	message = message + strings.Join(args, " ")
-	cc, _ = parser.ParseAsMuchOfCCAsPossible(message)
 	valid := cc.MinimallyValid() &&
 		cc.ValidCommitType(cfg.CommitTypes) &&
 		(cc.ValidScope(cfg.Scopes) || cc.Scope == "")
@@ -156,7 +158,7 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.Flags().BoolP("help", "h", false, "print the usage of git-cc")
 	Cmd.Flags().Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
-	Cmd.Flags().StringP("message", "m", "", "pass a complete conventional commit. If valid, it'll be committed without editing.")
+	Cmd.Flags().StringArrayP("message", "m", []string{}, "pass a complete conventional commit. If valid, it'll be committed without editing.")
 	Cmd.Flags().Bool("version", false, "print the version")
 	// TODO: accept more of git commit's flags; see https://git-scm.com/docs/git-commit
 	// likely: --cleanup=<mode>
