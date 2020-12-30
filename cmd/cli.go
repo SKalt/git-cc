@@ -30,14 +30,16 @@ func versionMode() {
 func getGitCommitCmd(cmd *cobra.Command) []string {
 	commitCmd := []string{}
 	noEdit, _ := cmd.Flags().GetBool("no-edit")
-	message, _ := cmd.Flags().GetString("message")
+	message, _ := cmd.Flags().GetStringArray("message")
 	for _, name := range boolFlags {
 		flag, _ := cmd.Flags().GetBool(name)
 		if flag {
 			commitCmd = append(commitCmd, "--"+name)
 		}
 	}
-	if !noEdit || len(message) == 0 {
+	if noEdit || len(message) > 0 {
+		commitCmd = append(commitCmd, "--no-edit")
+	} else {
 		commitCmd = append(commitCmd, "--edit")
 	}
 	return commitCmd
@@ -56,14 +58,16 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 	}
 	if dryRun {
 		fmt.Println(message)
-		return
 	}
 	cmd := append([]string{"git", "commit", "--message", message}, commitParams...)
 	process := exec.Command(cmd[0], cmd[1:]...)
 	process.Stdin = os.Stdin
 	process.Stdout = os.Stdout
 	process.Stderr = os.Stderr
-	if !dryRun {
+	if dryRun {
+		fmt.Printf("would run: `%s`\n", strings.Join(cmd, " "))
+		os.Exit(0)
+	} else {
 		err = process.Run()
 		if err != nil {
 			log.Fatalf("failed running `%+v`: %+v", cmd, err)
