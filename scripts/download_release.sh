@@ -6,7 +6,7 @@ usage_message="$0 [apk|deb|rpm|tar.gz|exe]
 download a release of git-cc for your OS and chip.
 "
 usage() { echo "$usage_message"; }
-is_installed() { command -v sha256sum  1>/dev/null 2>&1; }
+is_installed() { command -v "$1"  1>/dev/null 2>&1; }
 dl_url() { echo "https://github.com/$repo/releases/download/$1/$2"; }
 json_values() { cat - | grep -e "$1" | awk -F '"' '{ print $4 }'; }
 download_metadata() {
@@ -52,8 +52,8 @@ main() {
   -h|--help) usage && return 0;
   esac
   set -eu
-  os="$(get_os)";        echo "os=$os"
-  arch="$(get_arch)";    echo "arch=$arch"
+  os="$(get_os)";            echo "os=$os"
+  arch="$(get_arch)";        echo "arch=$arch"
   fmt="$(get_fmt "${1:-}")"; echo "format=$fmt"
   name="$(
     download_metadata      \
