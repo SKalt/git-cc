@@ -1,5 +1,5 @@
 .PHONY: build install
-./dist/git-cc: ./main.go
+./dist/git-cc: ./main.go ./go.mod ./go.sum ./pkg/**/*.go
 	go build -o ./dist
 build: ./dist/git-cc
 unit-test:
