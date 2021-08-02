@@ -31,13 +31,14 @@ An interactive command-line application helps with following the standard.
 
 ## Installation
 
-Go to [the project releases page][releases page] to download the appropriate package. Alternately, use the installer script at [./scripts/download_release.sh](./scripts/download_release.sh)
+Go to [the project releases page][releases page] to download the appropriate package. Alternately, use the installer script at [./scripts/download_release.sh](./scripts/download_release.sh).  Note that (and please verify) the installer script checks the shasum of the downloaded executable for you before you run it.
 
 <details><summary>on linux or mac/darwin</summary>
 
 ```sh
-./download_release.sh "tar.gz"             &&
-  tar -xf ./git-cc*.tar.gz --C /tmp/git-cc &&
+./download_release.sh "tar.gz"     &&
+  tar -xf ./git-cc*.tar.gz -C /tmp &&
+  mv /tmp/git-cc /usr/local/bin/   &&
   rm -rf ./git-cc*.tar.gz
 ```
 </details>
