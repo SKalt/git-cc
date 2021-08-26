@@ -1,5 +1,8 @@
 # git-cc
-> a git extension to help write [conventional commits][cc-standard]
+a git extension to help write [conventional commits][cc-standard]
+
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/skalt/git-cc)
+![Go report card](https://goreportcard.com/badge/github.com/skalt/git-cc)
 
 
 ## Usage
@@ -24,7 +27,7 @@ See [`./commit_convention.yml`](./commit_convention.yml) for an example configur
 
 ## Why write conventional commits through an interactive CLI? 
 Figuring out what to write for an informative commit can be difficult.
-The convential commits standard helps figure out what to write.
+The conventional commits standard helps figure out what to write.
 As a bonus, conventional commits facilitate generating changelogs and semantic version increments.
 An interactive command-line application helps with following the standard.
 
