@@ -22,7 +22,6 @@ type Model struct {
 	context         string
 	Width           int // in runes
 	Height          int // in lines
-	selected        string
 	textInput       textinput.Model
 }
 
@@ -54,13 +53,16 @@ func NewModel(context string, value string, options []map[string]string, match f
 	result.matched, result.filtered = result.filter(value)
 	return result
 }
+
 func (m *Model) Focus() tea.Cmd {
-	m.textInput.Focus()
-	return nil
+	return m.textInput.Focus()
 }
+
 func (m *Model) Match(query string, option string) bool {
 	return m.match(m, query, option)
 }
+
+// register an error with the textInput sub-component
 func (m Model) SetErr(err error) Model {
 	m.textInput.Err = err
 	return m
@@ -105,6 +107,7 @@ func (m Model) filter(startingWith string) ([][2]string, [][2]string) {
 	return matched, filtered
 }
 
+// access the matched, selected value. If no value is matched, this returns "".
 func (m Model) Value() string {
 	if len(m.matched) > 0 {
 		return m.matched[m.Cursor][0]
@@ -148,6 +151,7 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		model.Height = msg.Height
 		model.Width = msg.Width
+		model.textInput, cmd = model.textInput.Update(msg)
 		return model, cmd
 	}
 	return model, cmd
@@ -157,13 +161,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return Update(msg, m)
 }
 
+// wrap `text` between column `left` and `right`, applying `style`
 func wrapLine(
 	left uint,
-	hint string,
+	text string,
 	right int,
 	style func(string) term.Style,
 ) string {
-	lines := strings.SplitN(wordwrap.String(hint, right), "\n", 2)
+	lines := strings.SplitN(wordwrap.String(text, right), "\n", 2)
 	result := style(lines[0]).String()
 	if len(lines) > 1 {
 		result += "\n" + indent.String(style(lines[1]).String(), left)

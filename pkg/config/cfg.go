@@ -52,10 +52,6 @@ func Faint(s string) string {
 	return termenv.String(s).Faint().String()
 }
 
-func HelpBar(s ...string) string {
-	return Faint(fmt.Sprintf("\n%s", strings.Join(s, "; ")))
-}
-
 type Cfg struct {
 	CommitTypes     []map[string]string `mapstructure:"commit_types"`
 	Scopes          []map[string]string `mapstructure:"scopes"`

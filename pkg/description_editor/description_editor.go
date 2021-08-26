@@ -4,27 +4,30 @@ package description_editor
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/termenv"
 	"github.com/skalt/git-cc/pkg/config"
+	"github.com/skalt/git-cc/pkg/helpbar"
 )
 
-var helpBar = config.HelpBar(config.HelpSubmit, config.HelpBack, config.HelpCancel)
-
-const prePrompt = "A short description of the changes:\n\n"
+const prePrompt = "A short description of the changes:"
 
 type Model struct {
+	width       int
+	input       textinput.Model // TODO: make input a pointer
+	lengthLimit int             // TODO: make *int and use nil to eliminate countdown
+	helpBar     helpbar.Model
 	prefix      string
-	prefixLen   int
-	input       textinput.Model
-	lengthLimit int // TODO: make *int and use nil to eliminate countdown
 }
 
 func (m Model) SetPrefix(prefix string) Model {
-	m.prefixLen = len(prefix)
-	m.input.Prompt = config.Faint(prePrompt) + prefix
+	m.prefix = prefix
+	m.input.Prompt = prefix
 	return m
 }
 func (m Model) SetErr(err error) Model {
@@ -50,14 +53,19 @@ func NewModel(lengthLimit int, value string, enforced bool) Model {
 	}
 	input.Focus()
 	return Model{
-		prefixLen:   0,
 		lengthLimit: lengthLimit,
 		input:       input,
+		helpBar: helpbar.NewModel(
+			config.HelpSubmit,
+			config.HelpBack,
+			config.HelpCancel,
+		),
 	}
 }
 
+// a styled length-counter, e.g. ( 9/80)
 func viewCounter(m Model) string {
-	current := m.prefixLen + len(m.input.Value())
+	current := len(m.prefix) + len(m.input.Value())
 	paddedFormat := fmt.Sprintf(
 		"(%%%dd/%d)", len(fmt.Sprintf("%d", m.lengthLimit)), m.lengthLimit,
 	)
@@ -69,10 +77,6 @@ func viewCounter(m Model) string {
 	} else { // render in an alert color
 		return termenv.String(view).Underline().String()
 	}
-}
-
-func viewHelpBar(m Model) string {
-	return fmt.Sprintf("\n%s %s", helpBar, viewCounter(m))
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -88,17 +92,41 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.input.Focus()
 			return m, cmd
 		}
+	case tea.WindowSizeMsg:
+		m.helpBar, cmd = m.helpBar.Update(msg)
+		m.input.Width = msg.Width
+		m.width = msg.Width
+		return m, cmd
 	default:
-		m.input, cmd = m.input.Update(msg)
-		m.input.Focus()
+		m.input, _ = m.input.Update(msg)
+		cmd = m.input.Focus()
 		return m, cmd
 	}
 }
 
 func (m Model) View() string {
-	return m.input.View() + "\n" + viewHelpBar(m)
+	s := strings.Builder{}
+	s.WriteString(wordwrap.String(config.Faint(prePrompt), m.width))
+	s.WriteRune('\n')
+	s.WriteRune('\n')
+	s.WriteString(m.input.View())
+	s.WriteRune('\n')
+	s.WriteRune('\n')
+	helpBar := m.helpBar.View()
+	counter := viewCounter(m)
+	s.WriteString(helpBar)
+
+	helpBarLines := strings.Split(helpBar, "\n")
+	last := helpBarLines[len(helpBarLines)-1]
+	if ansi.PrintableRuneWidth(last)+ansi.PrintableRuneWidth(counter) >= m.width {
+		s.WriteRune('\n')
+	} else {
+		s.WriteRune(' ')
+	}
+	s.WriteString(counter)
+	return s.String()
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil // textinput.Blink(m.input)
+	return nil // textinput.Blink(m.input)?
 }

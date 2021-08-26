@@ -111,15 +111,6 @@ var CommitType Parser = Marked("CommitType")(
 	TakeUntil(Any(BreakingChangeBang, Tag(":"), Tag("("), Empty)),
 )
 
-// func CommitTypeParser(extraTypes ...string) Parser {
-// 	// TODO: considuer using TakeUntil(Any(BreakingBang, Tag(":")))
-// 	commitTypes := []Parser{Tag("feat"), Tag("fix")}
-// 	for _, commitType := range extraTypes {
-// 		commitTypes = append(commitTypes, Tag(commitType))
-// 	}
-// 	return Marked("CommitType")(Any(commitTypes...))
-// }
-
 // A scope MAY be provided after a type. A scope MUST consist of a noun describing a section of the codebase surrounded by parenthesis, e.g., fix(parser):
 var Scope Parser = Marked("Scope")(Delimeted(Tag("("), TakeUntil(Tag(")")), Tag(")")))
 var BreakingChangeBang Parser = Marked("BreakingChangeBang")(Tag("!"))

@@ -8,10 +8,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/termenv"
 	"github.com/skalt/git-cc/pkg/config"
+	"github.com/skalt/git-cc/pkg/helpbar"
 )
 
 type Model struct {
-	input textinput.Model
+	input   textinput.Model
+	helpBar helpbar.Model
 }
 
 var helpBar = termenv.String(strings.Join(
@@ -37,5 +39,8 @@ func NewModel() Model {
 	input.Prompt = termenv.String("Breaking changes: ").Faint().String()
 	input.Placeholder = "if any."
 	input.Focus()
-	return Model{input}
+	return Model{
+		input,
+		helpbar.NewModel(config.HelpSubmit, config.HelpBack, config.HelpCancel),
+	}
 }

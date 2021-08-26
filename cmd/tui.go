@@ -41,7 +41,8 @@ type model struct {
 	scopeInput          scope_selector.Model
 	descriptionInput    description_editor.Model
 	breakingChangeInput breaking_change_input.Model
-
+	// the width of the terminal; needed for instantiating components
+	// width  int
 	choice chan string
 }
 
@@ -75,7 +76,7 @@ func (m model) value() string {
 	breakingChange := m.commit[breakingChangeIndex]
 	if breakingChange != "" {
 		result.WriteString(fmt.Sprintf("\n\nBREAKING CHANGE: %s\n", breakingChange))
-		// TODO: handle muliple breaking change footers(?)
+		// TODO: handle multiple breaking change footers(?)
 	}
 	return result.String()
 }
@@ -125,7 +126,8 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 		scopeInput:          scopeModel,
 		descriptionInput:    descModel,
 		breakingChangeInput: bcModel,
-		viewing:             commitTypeIndex}
+		viewing:             commitTypeIndex,
+	}
 	if m.shouldSkip(m.viewing) {
 		m = m.submit().advance()
 		m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
@@ -133,18 +135,20 @@ func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
 	return m
 }
 
-func (m model) updateCurrentInput(msg tea.Msg) model {
+// pass the `msg` to the currently-displayed component/view
+func (m model) updateCurrentInput(msg tea.Msg) (model, tea.Cmd) {
+	var cmd tea.Cmd
 	switch m.viewing {
 	case commitTypeIndex:
-		m.typeInput, _ = m.typeInput.Update(msg)
+		m.typeInput, cmd = m.typeInput.Update(msg)
 	case scopeIndex:
-		m.scopeInput, _ = m.scopeInput.Update(msg)
+		m.scopeInput, cmd = m.scopeInput.Update(msg)
 	case shortDescriptionIndex:
-		m.descriptionInput, _ = m.descriptionInput.Update(msg)
+		m.descriptionInput, cmd = m.descriptionInput.Update(msg)
 	case breakingChangeIndex:
-		m.breakingChangeInput, _ = m.breakingChangeInput.Update(msg)
+		m.breakingChangeInput, cmd = m.breakingChangeInput.Update(msg)
 	}
-	return m
+	return m, cmd
 }
 
 func (m model) shouldSkip(component componentIndex) bool {
@@ -215,8 +219,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, cmd
 		default:
-			m = m.updateCurrentInput(msg)
+			m, cmd = m.updateCurrentInput(msg)
 		}
+	case tea.WindowSizeMsg:
+		// ensure instances of tea.WindowSizeMsg reach all child-components
+		m.typeInput, _ = m.typeInput.Update(msg)
+		m.scopeInput, _ = m.scopeInput.Update(msg)
+		m.descriptionInput, _ = m.descriptionInput.Update(msg)
+		m.breakingChangeInput, cmd = m.breakingChangeInput.Update(msg)
+	default:
+		m, cmd = m.updateCurrentInput(msg)
 	}
 	return m, cmd
 }

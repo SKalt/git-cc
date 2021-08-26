@@ -2,22 +2,21 @@ package scope_selector
 
 import (
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/skalt/git-cc/pkg/config"
+	"github.com/skalt/git-cc/pkg/helpbar"
 	"github.com/skalt/git-cc/pkg/parser"
 	"github.com/skalt/git-cc/pkg/single_select"
-)
-
-var helpBar = config.HelpBar(
-	config.HelpSubmit, config.HelpSelect, config.HelpBack, config.HelpCancel,
 )
 
 const emptyScopeTemplate = "scopes:\n%s\n"
 const newScopeTemplate = "  %s: description of what short-form \"%s\" represents"
 
 type Model struct {
-	input single_select.Model
+	input   single_select.Model
+	helpBar helpbar.Model
 }
 
 // the method for determining if the current input matches an option.
@@ -62,6 +61,12 @@ func NewModel(cc *parser.CC, cfg config.Cfg) Model {
 			makeOptions(cfg.Scopes),
 			match,
 		),
+		helpbar.NewModel(
+			config.HelpSubmit,
+			config.HelpSelect,
+			config.HelpBack,
+			config.HelpCancel,
+		),
 	}
 }
 
@@ -70,7 +75,11 @@ func (m Model) Value() string {
 }
 
 func (m Model) View() string {
-	return m.input.View() + helpBar
+	s := strings.Builder{}
+	s.WriteString(m.input.View())
+	s.WriteRune('\n')
+	s.WriteString(m.helpBar.View())
+	return s.String()
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -100,6 +109,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
+	case tea.WindowSizeMsg:
+		m.helpBar, _ = m.helpBar.Update(msg)
 	}
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
