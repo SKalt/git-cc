@@ -24,7 +24,7 @@ get_arch() {
   esac
 }
 get_os() {
-  os="$(uname --operating-system | tr '[:upper:]' '[:lower:]')"
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
   case "$os" in
   *linux) echo "linux";;
   *darwin) echo "darwin";;
