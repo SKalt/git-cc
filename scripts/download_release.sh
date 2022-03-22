@@ -24,7 +24,7 @@ get_arch() {
   esac
 }
 get_os() {
-  os="$(uname --operating-system | tr '[:upper:]' '[:lower:]')"
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
   case "$os" in
   *linux) echo "linux";;
   *darwin) echo "darwin";;
@@ -66,7 +66,11 @@ main() {
   version="$(json_values 'tag_name' < $resp)";
   echo "version=$version"
   echo "name=$name"
-
+  if [ -z "${name:-}" ]; then
+    echo "unfortunately, there's no prebuilt release for $fmt and $arch" >&2;
+    echo 'try `go get github.com/skalt/git-cc` to compile it yourself.' >&2;
+    exit 1;
+  fi
   curl -sLO "$(dl_url "$version" "$name")"
   check_sha256
 }
