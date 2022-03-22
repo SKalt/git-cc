@@ -155,7 +155,7 @@ func EditCfgFile(cfg *viper.Viper, defaultFileContent string) Cfg {
 	}
 	cfgFile := cfg.ConfigFileUsed()
 	if cfgFile == "" {
-		cfgFile = "commit_convention.yml"
+		cfgFile = "commit_convention.yml" // TODO: verify that this is the correct location (i.e. the cwd or a parent directory)?
 		f, err := os.Create(cfgFile)
 		if err != nil {
 			log.Fatalf("unable to create file %s: %+v", cfgFile, err)

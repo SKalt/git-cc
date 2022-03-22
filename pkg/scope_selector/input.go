@@ -103,6 +103,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				if m.input.Cursor >= len(m.input.Options) {
 					m.input.Cursor = len(m.input.Options) - 1
 				}
+				m.input, cmd = m.input.Update(msg)
 				return m, cmd
 			} else {
 				m.input, cmd = m.input.Update(msg)
