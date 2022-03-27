@@ -17,6 +17,11 @@ builds:
       - amd64
 
 archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -32,11 +37,13 @@ nfpms:
   - maintainer: Steven Kalt
     homepage: https://github.com/skalt/git-cc
     description: a git extension to help write conventional commits
-    # waiting on changes related to https://github.com/goreleaser/goreleaser/issues/1829 
-    # depends: [git]
-    symlinks:
-      /usr/local/bin/git-conventional-commit: /usr/local/bin/git-cc
+    license: "Indie Code Catalog Standard Deal >= 4.1"
+    # symlinks:
+      # /usr/local/bin/git-conventional-commit: /usr/local/bin/git-cc
+    dependencies:
+      - git
     formats:
+      # - apk
       - deb
       - rpm
       # it'd be neat to have npm, gem, and pypi packages as well! 

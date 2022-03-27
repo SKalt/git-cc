@@ -1,0 +1,20 @@
+{
+  "name": "git-cc",
+  "version": "0.0.6",
+  "description": "a git extension to help write conventional commits",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SKalt/git-cc.git"
+  },
+  "keywords": [],
+  "author": "Steven Kalt",
+  "license": "Indie Code Catalog Standard Deal >= 4.1",
+  "bugs": {
+    "url": "https://github.com/SKalt/git-cc/issues"
+  },
+  "homepage": "https://github.com/SKalt/git-cc#readme",
+  "devDependencies": {
+    "standard-version": "^9.3.2"
+  }
+}

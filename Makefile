@@ -1,4 +1,4 @@
-.PHONY: build install
+.PHONY: build install release changelog
 ./dist/git-cc: ./main.go ./go.mod ./go.sum ./pkg/**/*.go
 	go build -o ./dist
 build: ./dist/git-cc
@@ -11,6 +11,9 @@ test-release-process:
 test-rpm-install: test-release-process
 	docker run -v ${PWD}/dist:/dist centos bash -c 'rpm -i /dist/git-cc*_linux_amd64.rpm && git-cc --version'
 #^ requires that GITHUB_TOKEN be set, and the token have the 'repo' scope
+
+changelog:
+	pnpx standard-version
 release:
 	goreleaser release --rm-dist
 clean:
