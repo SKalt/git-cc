@@ -1,9 +1,10 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2016
-releases=/tmp/latest
-checksums=/tmp/checksums
-log_file=/tmp/git-cc-install.log
 repo=skalt/git-cc
+scratch_dir=/tmp/git-cc
+releases=$scratch_dir/latest
+checksums=$scratch_dir/checksums
+log_file=$scratch_dir/install.log
 
 # global script state
 fmt=
@@ -122,11 +123,11 @@ check_sha256() {
   fi
 
   if test "$dry_run" = "true"; then 
-    log_info "would check shasums by running \`$cmd\` in /tmp"
+    log_info "would check shasums by running \`$cmd\` in $scratch_dir"
   else
-    log_info "checking shasums: running \`$cmd\` in /tmp"
-    (cd /tmp; eval "$cmd")
-    # need to cd into /tmp to run the check since the paths in the checksums file
+    log_info "checking shasums: running \`$cmd\` in $scratch_dir"
+    (cd $scratch_dir; eval "$cmd")
+    # need to cd into $scratch_dir to run the check since the paths in the checksums file
     #are relative
   fi
 }
@@ -136,10 +137,10 @@ download_git_cc() {
   name="$2"
   url=; url="$(dl_url "$version" "$name")"
   if test "$dry_run" = "true"; then
-    log_info "would download $name into /tmp/"
+    log_info "would download $name into $scratch_dir"
   else
-    log_info "downloading $name into /tmp/"
-    curl -sL  "$url" > "/tmp/$name"
+    log_info "downloading $name into $scratch_dir"
+    curl -sL  "$url" > "$scratch_dir/$name"
   fi
 }
 
@@ -150,19 +151,19 @@ install_git_cc() {
   case "$name" in
     *.tar.gz)
       # TODO: figure out a more idiomatic user-local location to place it?
-      cmd="tar -xf /tmp/$name && sudo cp /tmp/git-cc /usr/local/bin/;"
+      cmd="tar -xf $scratch_dir/$name -C $scratch_dir && sudo cp $scratch_dir/git-cc /usr/local/bin/;"
       ;;
-    *.apk) cmd="apk add /tmp/$name";; # TODO: verify this works
-    *.deb) cmd="sudo apt-get install -y /tmp/$name";;
+    *.apk) cmd="apk add $scratch_dir/$name";; # TODO: verify this works
+    *.deb) cmd="sudo apt-get install -y $scratch_dir/$name";;
     *.rpm)
-      if is_installed yum; then   cmd="sudo yum localinstall /tmp/$name"
-      elif is_installed dnf; then cmd="sudo dnf localinstall /tmp/$name"
-      elif is_installed rpm; then cmd="sudo rpm -i /tmp/$name"
+      if is_installed yum; then   cmd="sudo yum localinstall $scratch_dir/$name"
+      elif is_installed dnf; then cmd="sudo dnf localinstall $scratch_dir/$name"
+      elif is_installed rpm; then cmd="sudo rpm -i $scratch_dir/$name"
       else fail 'neither `yum`, `dnf`, nor `rmp` found' 127
       fi
       ;;
     *.exe)
-      log_warning "you'll need to install /tmp/$name manually"
+      log_warning "you'll need to install $scratch_dir/$name manually"
       ;;
   esac
   if test "$dry_run" = "true"; then
@@ -175,6 +176,7 @@ install_git_cc() {
 
 main() {
   set -eu
+  mkdir -p $scratch_dir
   while [ -n "${1:-}" ]; do
     case "$1" in
       -h|--help) usage && return 0;;
@@ -210,6 +212,9 @@ main() {
   if [ -z "${name:-}" ]; then
     fail "unfortunately, there's no prebuilt release for $fmt and $arch. " \
       'try `go get github.com/skalt/git-cc` to compile it yourself.'
+  fi
+  if ! is_installed curl; then
+    fail '`curl` is required for this install script';
   fi
   download_git_cc "$version" "$name"
   check_sha256

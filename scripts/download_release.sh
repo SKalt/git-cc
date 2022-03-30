@@ -1,9 +1,10 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2016
-releases=/tmp/latest
-checksums=/tmp/checksums
-log_file=/tmp/git-cc-download.log
 repo=skalt/git-cc
+scratch_dir=/tmp/git-cc
+releases=$scratch_dir/latest
+checksums=$scratch_dir/checksums
+log_file=$scratch_dir/install.log
 
 # global script state
 fmt=
@@ -122,11 +123,11 @@ check_sha256() {
   fi
 
   if test "$dry_run" = "true"; then 
-    log_info "would check shasums by running \`$cmd\` in /tmp"
+    log_info "would check shasums by running \`$cmd\` in $scratch_dir"
   else
-    log_info "checking shasums: running \`$cmd\` in /tmp"
-    (cd /tmp; eval "$cmd")
-    # need to cd into /tmp to run the check since the paths in the checksums file
+    log_info "checking shasums: running \`$cmd\` in $scratch_dir"
+    (cd $scratch_dir; eval "$cmd")
+    # need to cd into $scratch_dir to run the check since the paths in the checksums file
     #are relative
   fi
 }
@@ -136,15 +137,16 @@ download_git_cc() {
   name="$2"
   url=; url="$(dl_url "$version" "$name")"
   if test "$dry_run" = "true"; then
-    log_info "would download $name into /tmp/"
+    log_info "would download $name into $scratch_dir"
   else
-    log_info "downloading $name into /tmp/"
-    curl -sL  "$url" > "/tmp/$name"
+    log_info "downloading $name into $scratch_dir"
+    curl -sL  "$url" > "$scratch_dir/$name"
   fi
 }
 
 main() {
   set -eu
+  mkdir -p $scratch_dir
   while [ -n "${1:-}" ]; do
     case "$1" in
       -h|--help) usage && return 0;;
@@ -180,6 +182,9 @@ main() {
   if [ -z "${name:-}" ]; then
     fail "unfortunately, there's no prebuilt release for $fmt and $arch. " \
       'try `go get github.com/skalt/git-cc` to compile it yourself.'
+  fi
+  if ! is_installed curl; then
+    fail '`curl` is required for this install script';
   fi
   download_git_cc "$version" "$name"
   check_sha256
