@@ -34,39 +34,35 @@ An interactive command-line application helps with following the standard.
 
 ## Installation
 
-Go to [the project releases page][releases page] to download the appropriate package. Alternately, use the installer script at [./scripts/download_release.sh](./scripts/download_release.sh).  Note that (and please verify) the installer script checks the shasum of the downloaded executable for you before you run it.
+Go to [the project releases page][releases page] to download the appropriate package. Alternately, use the installer script at [./scripts/install.sh](./scripts/install.sh).
 
-<details><summary>on linux or mac/darwin</summary>
+Please verify the the shasum of the downloaded executable for you before you run it.
+Alternately, verify that the installer script would correctly check the shasum of the downloaded package.
 
-```sh
-./download_release.sh "tar.gz"     &&
-  tar -xf ./git-cc*.tar.gz -C /tmp &&
-  mv /tmp/git-cc /usr/local/bin/   &&
-  rm -rf ./git-cc*.tar.gz
-```
-</details>
-
-<details><summary>on debian</summary>
+### On linux or mac/darwin
 
 ```sh
-./download_release.sh "deb"  &&
-  sudo dpkg -i ./git-cc*.deb &&
-  rm ./git-cc*.deb
+repo=skalt/git-cc
+branch=master
+curl -sL https://raw.githubusercontent.com/$repo/$branch/scripts/install.sh | sh
 ```
-</details>
-<details><summary>on centos/RHEL/Amazon Linux</summary>
+
+### Using platform-specific package managers
+
+You can also use the install script to use platform-specific package managers. See the script's usage instructions for more details.
 
 ```sh
-./download_release.sh "rpm" &&
-  sudo rpm -i ./git-cc*.rpm &&
-  rm ./git-cc*.rpm
+repo=skalt/git-cc
+branch=master
+curl -sL https://raw.githubusercontent.com/$repo/$branch/scripts/install.sh > /tmp/install.sh;
+chmod +x /tmp/install.sh
+/tmp/install.sh --help
 ```
-</details>
-<details open><summary>From source with go</summary>
+
+### From source with go
 
 To compile from source, run `make install` inside the source directory.
 You'll need to have a `go >= 1.13` toolchain and to have your `$GOPATH/bin` on your `$PATH`.
-</details>
 
 ## Prior art:
 
