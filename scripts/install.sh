@@ -2,7 +2,7 @@
 # shellcheck disable=SC2016
 releases=/tmp/latest
 checksums=/tmp/checksums
-log_file=/tmp/git-cc-download.log
+log_file=/tmp/git-cc-install.log
 repo=skalt/git-cc
 
 # global script state
@@ -143,6 +143,36 @@ download_git_cc() {
   fi
 }
 
+install_git_cc() {
+  version="$1"
+  name="$2"
+  cmd=
+  case "$name" in
+    *.tar.gz)
+      # TODO: figure out a more idiomatic user-local location to place it?
+      cmd="tar -xf /tmp/$name && sudo cp /tmp/git-cc /usr/local/bin/;"
+      ;;
+    *.apk) cmd="apk add /tmp/$name";; # TODO: verify this works
+    *.deb) cmd="sudo apt-get install -y /tmp/$name";;
+    *.rpm)
+      if is_installed yum; then   cmd="sudo yum localinstall /tmp/$name"
+      elif is_installed dnf; then cmd="sudo dnf localinstall /tmp/$name"
+      elif is_installed rpm; then cmd="sudo rpm -i /tmp/$name"
+      else fail 'neither `yum`, `dnf`, nor `rmp` found' 127
+      fi
+      ;;
+    *.exe)
+      log_warning "you'll need to install /tmp/$name manually"
+      ;;
+  esac
+  if test "$dry_run" = "true"; then
+    log_info "would install git-cc by running \`$cmd\`"
+  else
+    log_info "installing git-cc: running \`$cmd\`"
+    eval "$cmd"
+  fi
+}
+
 main() {
   set -eu
   while [ -n "${1:-}" ]; do
@@ -183,6 +213,7 @@ main() {
   fi
   download_git_cc "$version" "$name"
   check_sha256
+  install_git_cc "$version" "$name"
 }
 
 main "$@"
