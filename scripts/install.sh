@@ -151,7 +151,7 @@ install_git_cc() {
   case "$name" in
     *.tar.gz)
       # TODO: figure out a more idiomatic user-local location to place it?
-      cmd="tar -xf $scratch_dir/$name -C $scratch_dir && sudo cp $scratch_dir/git-cc /usr/local/bin/;"
+      cmd="tar -xf $scratch_dir/$name -C $scratch_dir && chmod +x $scratch_dir/git-cc && sudo cp $scratch_dir/git-cc /usr/local/bin/;"
       ;;
     *.apk) cmd="apk add $scratch_dir/$name";; # TODO: verify this works
     *.deb) cmd="sudo apt-get install -y $scratch_dir/$name";;
