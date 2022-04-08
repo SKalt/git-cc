@@ -8,16 +8,18 @@ log_file=$scratch_dir/install.log
 
 # global script state
 fmt=
-dry_run=false # set to 'true' to for a dry run
+should_download=true # set to 'true' to download
+should_install=true # set to 'true' to try to install
 
-usage_message="$0 [-h|--help] [--dry-run] [FMT]
+usage_message="$0 [-h|--help] [--download-only|--dry-run] [FMT]
 download a release of git-cc for your OS and instruction set architecture.
 
 ARGS:
-  -h|--help  print this message and exit
-  --dry-run  print rather than follow the download url for the binary
-  FMT        The download format. Valid values are .apk, .deb, .rpm, .tar.gz,
-             and .exe; default .tar.gz.
+  -h|--help        print this message and exit
+  --download-only  download as FMT, but do not install
+  --dry-run        print rather than follow the download url for the binary
+  FMT              The download format. Valid values are .apk, .deb, .rpm,
+                   .tar.gz, and .exe; default .tar.gz.
 "
 
 usage() { echo "$usage_message"; }
@@ -122,13 +124,13 @@ check_sha256() {
     fail 'unable to find `sha256sum` or `shasum`' 127;
   fi
 
-  if test "$dry_run" = "true"; then 
-    log_info "would check shasums by running \`$cmd\` in $scratch_dir"
-  else
+  if test "$should_download" = "true"; then 
     log_info "checking shasums: running \`$cmd\` in $scratch_dir"
     (cd $scratch_dir; eval "$cmd")
     # need to cd into $scratch_dir to run the check since the paths in the checksums file
     #are relative
+  else
+    log_info "would check shasums by running \`$cmd\` in $scratch_dir"
   fi
 }
 
@@ -136,11 +138,11 @@ download_git_cc() {
   version="$1"
   name="$2"
   url=; url="$(dl_url "$version" "$name")"
-  if test "$dry_run" = "true"; then
-    log_info "would download $name into $scratch_dir"
-  else
+  if test "$should_download" = "true"; then
     log_info "downloading $name into $scratch_dir"
     curl -sL  "$url" > "$scratch_dir/$name"
+  else
+    log_info "would download $name into $scratch_dir"
   fi
 }
 
@@ -166,11 +168,11 @@ install_git_cc() {
       log_warning "you'll need to install $scratch_dir/$name manually"
       ;;
   esac
-  if test "$dry_run" = "true"; then
-    log_info "would install git-cc by running \`$cmd\`"
-  else
+  if test "$should_install" = "true"; then
     log_info "installing git-cc: running \`$cmd\`"
     eval "$cmd"
+  else
+    log_info "would install git-cc by running \`$cmd\`"
   fi
 }
 
@@ -180,11 +182,29 @@ main() {
   while [ -n "${1:-}" ]; do
     case "$1" in
       -h|--help) usage && return 0;;
-      --dry-run) export dry_run=true; shift;;
+      --dry-run)
+        if test "$should_install" = "false"; then 
+          log_error 'only one copy of --dry-run or --download-only allowed'
+          usage >&2
+          exit 1
+        fi
+        export should_install=false;
+        export should_download=false;
+        shift;
+        ;;
+      --download-only)
+        if test "$should_install" = "false"; then 
+          fail 'only one copy of --dry-run or --download-only allowed'
+          usage >&2
+          exit 1
+        fi
+        should_install=false;
+        shift;
+        ;;
       *)
         if test -n "$fmt"; then
           log_error "FMT can only be passed once"
-          usage
+          usage >&2
           exit 1
         else
           fmt="$(get_fmt "$1")"
@@ -198,7 +218,6 @@ main() {
   arch="$(get_arch)";
   if test -z "${fmt:-}"; then  fmt="$(get_fmt "")"; fi 
 
-  log_info "dry_run=$dry_run"
   log_info "os=$os"
   log_info "arch=$arch"
   log_info "format=$fmt"
