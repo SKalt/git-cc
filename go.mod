@@ -1,6 +1,6 @@
 module github.com/skalt/git-cc
 
-go 1.18
+go 1.19
 
 require (
 	github.com/charmbracelet/bubbles v0.10.3
