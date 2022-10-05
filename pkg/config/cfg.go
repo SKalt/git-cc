@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/muesli/termenv"
@@ -25,7 +26,7 @@ const ExampleCfgFile = ExampleCfgFileHeader + ExampleCfgFileCommitTypes + Exampl
 var (
 	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
 	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
-	AngularPresetCommmitTypes = []map[string]string{
+	AngularPresetCommitTypes = []map[string]string{
 		{"feat": "adds a new feature"},
 		{"fix": "fixes a bug"},
 		{"docs": "changes only the documentation"},
@@ -34,7 +35,7 @@ var (
 		{"test": "adds or corrects tests"},
 		{"build": "changes the build system or external dependencies"},
 		{"chore": "changes outside the code, docs, or tests"},
-		{"ci": "changes to the Continuous Inegration (CI) system"},
+		{"ci": "changes to the Continuous Integration (CI) system"},
 		{"refactor": "changes the code without changing behavior"},
 		{"revert": "reverts prior changes"},
 	}
@@ -66,14 +67,22 @@ func Init() *viper.Viper {
 	CentralStore = viper.New()
 	CentralStore.SetConfigName("commit_convention")
 	CentralStore.SetConfigType("yaml")
-	CentralStore.AddConfigPath(".")
+	cwd, _ := filepath.Abs(".")
+	// HACK: walk upwards in search of configuration rather than using the root
+	// of the git repo
+	paths := strings.Split(cwd, string(filepath.Separator))
+	for i := 0; i < len(paths); i++ {
+		path := string(os.PathSeparator) + filepath.Join(paths[0:len(paths)-i]...)
+		CentralStore.AddConfigPath(path)
+	}
+
 	CentralStore.AddConfigPath("$HOME")
 
-	CentralStore.SetDefault("commit_types", AngularPresetCommmitTypes)
+	CentralStore.SetDefault("commit_types", AngularPresetCommitTypes)
 	CentralStore.SetDefault("scopes", map[string]string{})
 	CentralStore.SetDefault("header_max_length", 72)
 	CentralStore.SetDefault("enforce_header_max_length", false)
-	// s.t. git log --oneline should remain within 80 columns w/ a 7-rune
+	// s.t. `git log --oneline` should remain within 80 columns w/ a 7-rune
 	// commit hash and one space before the commit message.
 	// this caps the max len of the `type(scope): description`, not the body
 	// TODO: use env vars?
