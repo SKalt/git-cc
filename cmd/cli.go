@@ -96,7 +96,7 @@ func mainMode(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	cc := &parser.CC{}
+	var cc *parser.CC
 
 	message, _ := cmd.Flags().GetStringArray("message")
 
@@ -176,7 +176,8 @@ func init() {
 	Cmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
 	Cmd.Flags().Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
 	Cmd.Flags().Bool("no-edit", false, "Use the selected commit message without launching an editor.")
-
+	Cmd.Flags().BoolP("no-verify", "n", false, "Bypass git hooks")
+	// https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
 	Cmd.Flags().Bool("generate-man-page", false, "Generate a man page in your manpath")
 	Cmd.Flags().Bool(
 		"generate-shell-completion",

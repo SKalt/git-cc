@@ -25,7 +25,13 @@ const ( // the order of the components
 )
 
 var (
-	boolFlags = [...]string{"all", "signoff", "no-post-rewrite", "no-gpg-sign"}
+	boolFlags = [...]string{
+		"all",
+		"signoff",
+		"no-post-rewrite",
+		"no-gpg-sign",
+		"no-verify", // https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
+	}
 )
 
 type InputComponent interface {
