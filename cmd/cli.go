@@ -177,7 +177,9 @@ func init() {
 	Cmd.Flags().Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
 	Cmd.Flags().Bool("no-edit", false, "Use the selected commit message without launching an editor.")
 	Cmd.Flags().BoolP("no-verify", "n", false, "Bypass git hooks")
+	Cmd.Flags().Bool("verify", true, "Ensure git hooks run")
 	// https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
+	Cmd.Flags().Bool("no-signoff", true, "Don't add a a `Signed-off-by` trailer to the commit message")
 	Cmd.Flags().Bool("generate-man-page", false, "Generate a man page in your manpath")
 	Cmd.Flags().Bool(
 		"generate-shell-completion",
