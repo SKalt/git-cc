@@ -19,10 +19,8 @@ func generateShellCompletion(cmd *cobra.Command, args []string) {
 	switch len(args) {
 	case 1:
 		shell = args[0]
-		break
 	case 0:
 		shell = path.Base(os.Getenv("SHELL"))
-		break
 	default:
 		log.Fatalf(
 			"expecting one argument, bash|fish|powershell|zsh; %d args passed (%+v)",

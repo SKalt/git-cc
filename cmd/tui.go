@@ -28,6 +28,7 @@ var (
 	boolFlags = [...]string{
 		"all",
 		"signoff",
+		"no-signoff",
 		"no-post-rewrite",
 		"no-gpg-sign",
 		"no-verify", // https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
