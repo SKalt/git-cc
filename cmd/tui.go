@@ -202,6 +202,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.viewing {
 			default:
 				m = m.submit().advance()
+			case commitTypeIndex:
+				if m.currentComponent().Value() == "" {
+					return m, cmd
+				} else {
+					m = m.submit().advance()
+				}
 			case scopeIndex:
 				if m.currentComponent().Value() == "new scope" {
 					m.scopeInput, cmd = m.scopeInput.Update(msg)
