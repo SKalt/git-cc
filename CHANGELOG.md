@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.9](https://github.com/SKalt/git-cc/compare/v0.0.8...v0.0.9) (2022-10-23)
+
+
+### Bug Fixes
+
+* **cli:** prevents next step until an available commit type is selected ([60563af](https://github.com/SKalt/git-cc/commit/60563af5745bf7617115693cddc549401cf80ab4))
+
 ### [0.0.8](https://github.com/SKalt/git-cc/compare/v0.0.7...v0.0.8) (2022-10-05)
 
 
