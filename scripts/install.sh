@@ -74,7 +74,8 @@ download_metadata() {
 }
 
 get_arch() {
-  case "$(arch)" in
+  arch="$(uname -m)"
+  case "$arch" in
   x86_64|x64|amd64) echo "amd64" ;;
   i386|386)         echo "386"   ;;
   arm64)            echo "arm64" ;;
