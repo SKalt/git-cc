@@ -130,7 +130,14 @@ func GetEditor() string {
 	if editor != "" {
 		return editor
 	}
-	return "vi"
+	editor = "vi"
+	_, err := exec.LookPath(editor)
+	if err != nil {
+		msg := "unable to open the fallback editor"
+		hint := "hint: set the EDITOR env variable or install vi"
+		log.Fatalf(fmt.Sprintf("%s: %q\n%s\n", msg, editor, hint))
+	}
+	return editor
 }
 
 // search GIT_EDITOR, then fall back to $EDITOR
