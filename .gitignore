@@ -2,3 +2,4 @@ node_modules
 dist
 .vscode
 .pnpm-debug.log
+.direnv
