@@ -1,4 +1,4 @@
-.PHONY: build install release changelog
+.PHONY: build install release changelog test-release-process test-rpm-install
 ./dist/git-cc: ./main.go ./go.mod ./go.sum ./pkg/**/*.go
 	go build -o ./dist
 build: ./dist/git-cc

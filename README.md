@@ -1,9 +1,9 @@
 # git-cc
+
 a git extension to help write [conventional commits][cc-standard]
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/skalt/git-cc)
 ![Go report card](https://goreportcard.com/badge/github.com/skalt/git-cc)
-
 
 ## Usage
 
@@ -22,15 +22,17 @@ git cc 'feat(cli): added a conventional commit' # ok! creates a commit
 git cc feat add a typo  # starts interaction at the scope
 git cc -m "invalid(stuff): should return 1"
 ```
+
 ### Configuration
+
 See [`./commit_convention.yml`](./commit_convention.yml) for an example configuration file.
 
-## Why write conventional commits through an interactive CLI? 
+## Why write conventional commits through an interactive CLI?
+
 Figuring out what to write for an informative commit can be difficult.
 The conventional commits standard helps figure out what to write.
 As a bonus, conventional commits facilitate generating changelogs and semantic version increments.
 An interactive command-line application helps with following the standard.
-
 
 ## Installation
 
@@ -62,7 +64,7 @@ chmod +x /tmp/install.sh
 ### From source with go
 
 To compile from source, run `make install` inside the source directory.
-You'll need to have a `go >= 1.13` toolchain and to have your `$GOPATH/bin` on your `$PATH`.
+You'll need to have a `go >= 1.19` toolchain and to have your `$GOPATH/bin` on your `$PATH`.
 
 ## Prior art:
 
@@ -70,8 +72,8 @@ You'll need to have a `go >= 1.13` toolchain and to have your `$GOPATH/bin` on y
 - [`commitsar`][commitsar]
 
 <!-- links -->
-[cc-standard]: https://www.conventionalcommits.org/en/v1.0.0/
 
+[cc-standard]: https://www.conventionalcommits.org/en/v1.0.0/
 [commitizen]: https://github.com/commitizen/cz-cli
 [commitlint]: https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional
 [commitsar]: https://github.com/commitsar-app/commitsar

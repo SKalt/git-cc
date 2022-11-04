@@ -22,12 +22,13 @@
             nixpkgs-fmt
             rnix-lsp
             gopls
+            gotools
             nodejs
             nodePackages.pnpm
             goreleaser
-            ttyd
-            ffmpeg
-            vhs
+            # ttyd
+            # ffmpeg
+            # vhs
           ];
         };
       }
