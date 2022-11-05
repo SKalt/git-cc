@@ -39,6 +39,16 @@ The conventional commits standard helps figure out what to write.
 As a bonus, conventional commits facilitate generating changelogs and semantic version increments.
 An interactive command-line application helps with following the standard.
 
+## Licensing
+
+`git-cc` is source-provided software, not free software:
+
+> To use software listed on this site to make money or for work, you need to buy a license. If you’re part of a team, everyone on your team who uses the software needs to buy one. You can [try before you buy](#free-trials), to make sure the software works and integrates well with your prototypes.
+
+For more details, see [./LICENSE.md](./LICENSE.md).
+
+You can buy a paid license at [https://indiecc.com/~skalt/git-cc](https://indiecc.com/~skalt/git-cc).
+
 ## Installation
 
 Go to [the project releases page][releases page] to download the appropriate package. Alternately, use the installer script at [./scripts/install.sh](./scripts/install.sh).
