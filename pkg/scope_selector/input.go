@@ -19,6 +19,8 @@ type Model struct {
 	helpBar helpbar.Model
 }
 
+type editorFinishedMsg struct{ err error }
+
 // the method for determining if the current input matches an option.
 func match(m *single_select.Model, query string, option string) bool {
 	if option == "new scope" {
@@ -90,20 +92,24 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyEnter, tea.KeyTab:
 			if m.Value() == "new scope" {
 				newScope := m.input.CurrentInput()
-				cfg := config.EditCfgFile(
+				editorCmd := config.EditCfgFileCmd(
 					config.CentralStore,
 					config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
 						emptyScopeTemplate,
 						fmt.Sprintf(newScopeTemplate, newScope, newScope),
 					),
 				)
+				cmd = tea.ExecProcess(editorCmd, func(err error) tea.Msg {
+					return editorFinishedMsg{err}
+				})
+				cfg := config.Lookup(config.CentralStore)
 				values, hints := makeOptHintPair(makeOptions(cfg.Scopes))
 				m.input.Options = values
 				m.input.Hints = hints
 				if m.input.Cursor >= len(m.input.Options) {
 					m.input.Cursor = len(m.input.Options) - 1
 				}
-				m.input, cmd = m.input.Update(msg)
+				m.input, _ = m.input.Update(nil)
 				return m, cmd
 			} else {
 				m.input, cmd = m.input.Update(msg)
@@ -112,6 +118,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		m.helpBar, _ = m.helpBar.Update(msg)
+	case editorFinishedMsg:
+		cfg := config.Lookup(config.CentralStore)
+		values, hints := makeOptHintPair(makeOptions(cfg.Scopes))
+		m.input.Options = values
+		m.input.Hints = hints
+		if m.input.Cursor >= len(m.input.Options) {
+			m.input.Cursor = len(m.input.Options) - 1
+		}
+		m.input, cmd = m.input.Update(msg)
+		return m, cmd
 	}
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd

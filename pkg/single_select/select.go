@@ -147,14 +147,17 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 			model.Cursor = 0
 			return model, cmd
 		}
-
 	case tea.WindowSizeMsg:
 		model.Height = msg.Height
 		model.Width = msg.Width
 		model.textInput, cmd = model.textInput.Update(msg)
 		return model, cmd
+	default:
+		model.textInput, cmd = model.textInput.Update(msg)
+		model.matched, model.filtered = model.filter(model.textInput.Value())
+		model.Cursor = 0
+		return model, cmd
 	}
-	return model, cmd
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {

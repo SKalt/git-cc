@@ -160,8 +160,10 @@ func GetCommitMessageFile() string {
 	)
 }
 
+type EditorFinishedMsg struct{ err error }
+
 // interactively edit the config file, if any was used.
-func EditCfgFile(cfg *viper.Viper, defaultFileContent string) Cfg {
+func EditCfgFileCmd(cfg *viper.Viper, defaultFileContent string) *exec.Cmd {
 	editCmd := []string{}
 	// sometimes $EDITOR can be a script with spaces, like `code --wait`
 	for _, part := range strings.Split(GetEditor(), " ") {
@@ -171,19 +173,17 @@ func EditCfgFile(cfg *viper.Viper, defaultFileContent string) Cfg {
 	}
 	cfgFile := cfg.ConfigFileUsed()
 	if cfgFile == "" {
-		cfgFile = "commit_convention.yml" // TODO: verify that this is the correct location (i.e. the cwd or a parent directory)?
+		cfgFile = "commit_convention.yaml" // TODO: verify that this is the correct location (i.e. the cwd or a parent directory)?
 		f, err := os.Create(cfgFile)
 		if err != nil {
 			log.Fatalf("unable to create file %s: %+v", cfgFile, err)
 		}
-		_, err = f.WriteString(fmt.Sprintf(defaultFileContent))
+		_, err = f.WriteString(defaultFileContent)
 		if err != nil {
 			log.Fatalf("unable to write to file: %v", err)
 		}
 	}
 	editCmd = append(editCmd, cfgFile)
 	cmd := exec.Command(editCmd[0], editCmd[1:]...)
-	cmd.Stdin, cmd.Stdout = os.Stdin, os.Stderr
-	cmd.Run() // ignore errors
-	return Lookup(cfg)
+	return cmd
 }

@@ -111,7 +111,7 @@ func mainMode(cmd *cobra.Command, args []string) {
 	if !valid {
 		choice := make(chan string, 1)
 		m := initialModel(choice, cc, cfg)
-		ui := tea.NewProgram(m)
+		ui := tea.NewProgram(m, tea.WithInputTTY())
 		if err := ui.Start(); err != nil {
 			log.Fatal(err)
 		}
