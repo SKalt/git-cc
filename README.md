@@ -7,7 +7,12 @@ a git extension to help write [conventional commits][cc-standard]
 
 ## Usage
 
-![demo video](./assets/demo.gif)
+<details><summary>Video</summary>
+<div>
+    <video controls src="./assets/demo.mp4" muted="true">
+    </video>
+</div>
+</details>
 
 ```sh
 # you can invoke either of the below to

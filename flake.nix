@@ -6,8 +6,6 @@
 
   outputs = { self, flake-utils, nixpkgs }:
     flake-utils.lib.eachDefaultSystem (system:
-      # packages.x86_64-linux.hello = nixpkgs.legacyPackages.x86_64-linux.hello;
-      # packages.x86_64-linux.default = self.packages.x86_64-linux.hello;
       let
         pkgs = (import nixpkgs) {
           inherit system;
@@ -16,7 +14,7 @@
       rec {
         devShell = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
-            go # 1.19
+            go # 1.19.x
           ];
           buildInputs = with pkgs; [
             nixpkgs-fmt
@@ -26,9 +24,10 @@
             nodejs
             nodePackages.pnpm
             goreleaser
-            # ttyd
-            # ffmpeg
-            # vhs
+            ttyd
+            ffmpeg
+            vhs
+            bashInteractive
           ];
         };
       }

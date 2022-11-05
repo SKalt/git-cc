@@ -1,6 +1,6 @@
 .PHONY: build install release changelog test-release-process test-rpm-install
 ./dist/git-cc: ./main.go ./go.mod ./go.sum ./pkg/**/*.go
-	go build -o ./dist
+	go build -o ./dist/git-cc
 build: ./dist/git-cc
 unit-test:
 	go test ./...
@@ -11,6 +11,9 @@ test-release-process:
 test-rpm-install: test-release-process
 	docker run -v ${PWD}/dist:/dist centos bash -c 'rpm -i /dist/git-cc*_linux_amd64.rpm && git-cc --version'
 #^ requires that GITHUB_TOKEN be set, and the token have the 'repo' scope
+
+./assets/demo.mp4: ./assets/demo.tape
+	cat ./assets/demo.tape | vhs
 
 changelog:
 	pnpx standard-version
