@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.10](https://github.com/SKalt/git-cc/compare/v0.0.9...v0.0.10) (2022-11-06)
+
+
+### Features
+
+* **cli:** adds a warning for editor not found when creating scope ([8a31a1c](https://github.com/SKalt/git-cc/commit/8a31a1c0535a147652bd558743323136ce4d7777))
+* **devtools:** draft nix flake ([804e87f](https://github.com/SKalt/git-cc/commit/804e87f8747a826ffebdb2560a29147b16c5637c))
+
+
+### Bug Fixes
+
+* **cli:** correctly handle spawning editors in a subprocess ([3a96806](https://github.com/SKalt/git-cc/commit/3a9680663ce6707882155aae26953e97939e1b8d))
+* **devtools:** get `go build` working with nix ([71cc1dd](https://github.com/SKalt/git-cc/commit/71cc1dd962e68466d59b823607286284367b5e2e))
+* **dist:** fix get_arch in install.sh ([1ef1bd7](https://github.com/SKalt/git-cc/commit/1ef1bd70c151be2ca1c9448be6de4877488669b7))
+* prevent video from being stripped from GFM ([d35e20a](https://github.com/SKalt/git-cc/commit/d35e20a707c0c2cd07aa1e53a5a13dcda7afb27c))
+
 ### [0.0.9](https://github.com/SKalt/git-cc/compare/v0.0.8...v0.0.9) (2022-10-23)
 
 
