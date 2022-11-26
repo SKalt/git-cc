@@ -1,5 +1,5 @@
 .PHONY: build install release changelog test-release-process test-rpm-install
-./dist/git-cc: ./main.go ./go.mod ./go.sum ./pkg/**/*.go
+./dist/git-cc: ./main.go ./go.mod ./go.sum ./pkg/**/*.go cmd/*.go
 	go build -o ./dist/git-cc
 build: ./dist/git-cc
 unit-test:

@@ -31,8 +31,9 @@ func getGitCommitCmd(cmd *cobra.Command) []string {
 	commitCmd := []string{}
 	noEdit, _ := cmd.Flags().GetBool("no-edit")
 	message, _ := cmd.Flags().GetStringArray("message")
+	flags := cmd.Flags()
 	for _, name := range boolFlags {
-		flag, _ := cmd.Flags().GetBool(name)
+		flag, _ := flags.GetBool(name)
 		if flag {
 			commitCmd = append(commitCmd, "--"+name)
 		}
@@ -135,53 +136,71 @@ func mainMode(cmd *cobra.Command, args []string) {
 	}
 }
 
+func redoMessage(cmd *cobra.Command) {
+	flags := cmd.Flags()
+	msg, _ := flags.GetStringArray("message")
+	if len(msg) > 0 {
+		log.Fatal("-m|--message is incompatible with --redo")
+	}
+	path := config.GetCommitMessageFile()
+	data, err := os.ReadFile(path)
+	// TODO: ignore commented lines in git-commit file
+	if err != nil || len(strings.Trim(string(data), "\r\n\t ")) == 0 {
+		fmt.Printf("file not found: %s", path)
+		os.Exit(127)
+	}
+	flags.Set("message", string(data))
+}
+
 var Cmd = &cobra.Command{
 	Use:   "git-cc",
 	Short: "write conventional commits",
 	// not using cobra subcommands since they prevent passing arbitrary arguments
 	Run: func(cmd *cobra.Command, args []string) {
-		version, _ := cmd.Flags().GetBool("version")
-		if version {
+		flags := cmd.Flags()
+		if version, _ := flags.GetBool("version"); version {
 			versionMode()
 			os.Exit(0)
-		}
-		genCompletion, _ := cmd.Flags().GetBool("generate-shell-completion")
-		if genCompletion {
+		} else if genCompletion, _ := flags.GetBool("generate-shell-completion"); genCompletion {
 			generateShellCompletion(cmd, args)
 			os.Exit(0)
-		}
-		genManPage, _ := cmd.Flags().GetBool("generate-man-page")
-		if genManPage {
+		} else if genManPage, _ := flags.GetBool("generate-man-page"); genManPage {
 			generateManPage(cmd, args)
 			os.Exit(0)
+		} else {
+			if redo, _ := flags.GetBool("redo"); redo {
+				redoMessage(cmd)
+			}
+			mainMode(cmd, args)
 		}
-		mainMode(cmd, args)
 	},
 }
 
 func init() {
-	Cmd.Flags().BoolP("help", "h", false, "print the usage of git-cc")
-	Cmd.Flags().Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
-	Cmd.Flags().StringArrayP("message", "m", []string{}, "pass a complete conventional commit. If valid, it'll be committed without editing.")
-	Cmd.Flags().Bool("version", false, "print the version")
+	flags := Cmd.Flags()
+	flags.BoolP("help", "h", false, "print the usage of git-cc")
+	flags.Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
+	flags.Bool("redo", false, "Reuse your last commit message")
+	flags.StringArrayP("message", "m", []string{}, "pass a complete conventional commit. If valid, it'll be committed without editing.")
+	flags.Bool("version", false, "print the version")
 	// TODO: accept more of git commit's flags; see https://git-scm.com/docs/git-commit
 	// likely: --cleanup=<mode>
 	// more difficult, and possibly better done manually: --amend, -C <commit>
 	// --reuse-message=<commit>, -c <commit>, --reedit-message=<commit>,
 	// --fixup=<commit>, --squash=<commit>
-	Cmd.Flags().String("author", "", "delegated to git-commit")
-	Cmd.Flags().String("date", "", "delegated to git-commit")
-	Cmd.Flags().BoolP("all", "a", false, "see the git-commit docs for --all|-a")
-	Cmd.Flags().BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
-	Cmd.Flags().Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
-	Cmd.Flags().Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
-	Cmd.Flags().Bool("no-edit", false, "Use the selected commit message without launching an editor.")
-	Cmd.Flags().BoolP("no-verify", "n", false, "Bypass git hooks")
-	Cmd.Flags().Bool("verify", true, "Ensure git hooks run")
+	flags.String("author", "", "delegated to git-commit")
+	flags.String("date", "", "delegated to git-commit")
+	flags.BoolP("all", "a", false, "see the git-commit docs for --all|-a")
+	flags.BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
+	flags.Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
+	flags.Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
+	flags.Bool("no-edit", false, "Use the selected commit message without launching an editor.")
+	flags.BoolP("no-verify", "n", false, "Bypass git hooks")
+	flags.Bool("verify", true, "Ensure git hooks run")
 	// https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
-	Cmd.Flags().Bool("no-signoff", true, "Don't add a a `Signed-off-by` trailer to the commit message")
-	Cmd.Flags().Bool("generate-man-page", false, "Generate a man page in your manpath")
-	Cmd.Flags().Bool(
+	flags.Bool("no-signoff", true, "Don't add a a `Signed-off-by` trailer to the commit message")
+	flags.Bool("generate-man-page", false, "Generate a man page in your manpath")
+	flags.Bool(
 		"generate-shell-completion",
 		false,
 		"print a bash/zsh/fish/powershell completion script to stdout",
