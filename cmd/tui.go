@@ -104,9 +104,9 @@ func (m model) currentComponent() InputComponent {
 // Pass a channel to the model to listen to the result value. This is a
 // function that returns the initialize function and is typically how you would
 // pass arguments to a tea.Init function.
-func initialModel(choice chan string, cc *parser.CC, cfg config.Cfg) model {
+func initialModel(choice chan string, cc *parser.CC, cfg *config.Cfg) model {
 	typeModel := type_selector.NewModel(cc, cfg)
-	scopeModel := scope_selector.NewModel(cc, cfg)
+	scopeModel := scope_selector.NewModel(cc, *cfg)
 	descModel := description_editor.NewModel(
 		cfg.HeaderMaxLength, cc.Description, cfg.EnforceMaxLength,
 	)

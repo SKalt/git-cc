@@ -79,12 +79,11 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 }
 
 // run the conventional-commit helper logic. This may/not break into the TUI.
-func mainMode(cmd *cobra.Command, args []string) {
-	cfg := config.Lookup(config.Init())
+func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
+
 	commitParams := getGitCommitCmd(cmd)
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	committingAllChanges, _ := cmd.Flags().GetBool("all")
-	if !dryRun && !committingAllChanges {
+	if !cfg.DryRun && !committingAllChanges {
 		buf := &bytes.Buffer{}
 		process := exec.Command("git", "diff", "--name-only", "--cached")
 		process.Stdout = buf
@@ -129,10 +128,10 @@ func mainMode(cmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatalf("unable to write to file %s: %+v", f, err)
 			}
-			doCommit(result, dryRun, commitParams)
+			doCommit(result, cfg.DryRun, commitParams)
 		}
 	} else {
-		doCommit(cc.ToString(), dryRun, commitParams)
+		doCommit(cc.ToString(), cfg.DryRun, commitParams)
 	}
 }
 
@@ -168,10 +167,15 @@ var Cmd = &cobra.Command{
 			generateManPage(cmd, args)
 			os.Exit(0)
 		} else {
+			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			cfg, err := config.Init(dryRun)
+			if err != nil {
+				log.Fatal(err)
+			}
 			if redo, _ := flags.GetBool("redo"); redo {
 				redoMessage(cmd)
 			}
-			mainMode(cmd, args)
+			mainMode(cmd, args, cfg)
 		}
 	},
 }

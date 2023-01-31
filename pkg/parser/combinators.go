@@ -10,7 +10,7 @@ import (
 
 type Result struct {
 	Children  []Result
-	Type      string
+	Type      string // TODO: use enum rather than a string?
 	Value     string
 	Remaining []rune
 }

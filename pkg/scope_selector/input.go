@@ -2,6 +2,7 @@ package scope_selector
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -92,6 +93,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyEnter, tea.KeyTab:
 			if m.Value() == "new scope" {
 				newScope := m.input.CurrentInput()
+				// editorStartMsg{newScope}
 				editorCmd := config.EditCfgFileCmd(
 					config.CentralStore,
 					config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
@@ -102,14 +104,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				cmd = tea.ExecProcess(editorCmd, func(err error) tea.Msg {
 					return editorFinishedMsg{err}
 				})
-				cfg := config.Lookup(config.CentralStore)
-				values, hints := makeOptHintPair(makeOptions(cfg.Scopes))
-				m.input.Options = values
-				m.input.Hints = hints
-				if m.input.Cursor >= len(m.input.Options) {
-					m.input.Cursor = len(m.input.Options) - 1
-				}
-				m.input, _ = m.input.Update(nil)
 				return m, cmd
 			} else {
 				m.input, cmd = m.input.Update(msg)
@@ -119,8 +113,26 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.helpBar, _ = m.helpBar.Update(msg)
 	case editorFinishedMsg:
-		cfg := config.Lookup(config.CentralStore)
-		values, hints := makeOptHintPair(makeOptions(cfg.Scopes))
+		if msg.err != nil {
+			// TODO: handle editor exiting with an error
+			log.Fatal(msg.err)
+		}
+		if err := config.CentralStore.ReadCfgFile(); err != nil {
+			// TODO: warn about parse error
+			newScope := m.input.CurrentInput()
+			editorCmd := config.EditCfgFileCmd(
+				config.CentralStore,
+				config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
+					emptyScopeTemplate,
+					fmt.Sprintf(newScopeTemplate, newScope, newScope),
+				),
+			)
+			cmd = tea.ExecProcess(editorCmd, func(err error) tea.Msg {
+				return editorFinishedMsg{err}
+			})
+			return m, cmd
+		}
+		values, hints := makeOptHintPair(makeOptions(config.CentralStore.Scopes))
 		m.input.Options = values
 		m.input.Hints = hints
 		if m.input.Cursor >= len(m.input.Options) {
