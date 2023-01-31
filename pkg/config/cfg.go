@@ -13,13 +13,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/mitchellh/mapstructure"
-	_ "github.com/mitchellh/mapstructure"
 	"github.com/muesli/termenv"
 	yaml "gopkg.in/yaml.v3"
-	// "github.com/spf13/viper"
-	// TODO: yaml => map[string]interface{}
-	// TODO: toml => map[string]interface{}
-	// TODO: json => map[string]interface{}
 )
 
 const ExampleCfgFileHeader = `## commit_convention.yml
@@ -309,7 +304,7 @@ func GetEditor() string {
 
 // search GIT_EDITOR, then fall back to $EDITOR
 func GetGitEditor() string {
-	editor, err := getGitVar("GIT_EDITOR") // TODO: shell-split the string
+	editor, err := getGitVar("GIT_EDITOR") // TODO: shell-split the string?
 	if err != nil {
 		return GetEditor()
 	}
@@ -336,8 +331,8 @@ func EditCfgFileCmd(cfg *Cfg, defaultFileContent string) *exec.Cmd {
 	}
 	cfgFile := cfg.configFile
 	if cfgFile == "" {
-		cfgFile = "commit_convention.yaml" // TODO: verify that this is the correct location (i.e. the cwd or a parent directory)?
-		f, err := os.Create(cfgFile)
+		cfgFile = "commit_convention.yaml"
+		f, err := os.Create(path.Join(cfg.gitRepoRoot, cfgFile))
 		if err != nil {
 			log.Fatalf("unable to create file %s: %+v", cfgFile, err)
 		}

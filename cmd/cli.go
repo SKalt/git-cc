@@ -141,13 +141,27 @@ func redoMessage(cmd *cobra.Command) {
 	if len(msg) > 0 {
 		log.Fatal("-m|--message is incompatible with --redo")
 	}
-	path := config.GetCommitMessageFile()
-	data, err := os.ReadFile(path)
+	commitMessagePath := config.GetCommitMessageFile()
+	data, err := os.ReadFile(commitMessagePath)
 	// TODO: ignore commented lines in git-commit file
-	if err != nil || len(strings.Trim(string(data), "\r\n\t ")) == 0 {
-		fmt.Printf("file not found: %s", path)
+	if err != nil {
+		fmt.Printf("file not found: %s", commitMessagePath)
 		os.Exit(127)
 	}
+	empty := true
+	for _, line := range strings.Split(
+		strings.Trim(string(data), "\r\n\t "),
+		"\n",
+	) {
+		if !strings.HasPrefix(strings.TrimLeft(line, " \t\r\n"), "#") {
+			empty = false
+			break // ok
+		}
+	}
+	if empty {
+		log.Fatalf("Empty commit message: %s", commitMessagePath)
+	}
+
 	flags.Set("message", string(data))
 }
 

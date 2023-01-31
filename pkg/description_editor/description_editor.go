@@ -20,7 +20,7 @@ const prePrompt = "A short description of the changes:"
 type Model struct {
 	width       int
 	input       textinput.Model // TODO: make input a pointer
-	lengthLimit int             // TODO: make *int and use nil to eliminate countdown
+	lengthLimit int
 	helpBar     helpbar.Model
 	prefix      string
 }

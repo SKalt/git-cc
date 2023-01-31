@@ -1,6 +1,5 @@
 package breaking_change_input
 
-// TODO: refactor to a better name ^
 import (
 	"strings"
 
