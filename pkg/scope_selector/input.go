@@ -37,31 +37,20 @@ func match(m *single_select.Model, query string, option string) bool {
 }
 
 // given options from config, add the leading "unscoped" and trailing "new scope" options
-func makeOptions(options []map[string]string) []map[string]string {
-	return append(append(
-		[]map[string]string{{"": "unscoped; affects the entire project"}},
-		options...,
-	), map[string]string{"new scope": "edit a new scope into your configuration file"})
-}
-
-// should return two slices of string of equal size.
-func makeOptHintPair(options []map[string]string) ([]string, []string) {
-	values, hints := []string{}, []string{}
-	for _, option := range options {
-		for value, hint := range option {
-			values = append(values, value)
-			hints = append(hints, hint)
-		}
-	}
-	return values, hints
+func makeOptions(options *config.OrderedMap) (keys []string, values []string) {
+	keys, values = config.ZippedOrderedKeyValuePairs(options)
+	keys = append(append([]string{""}, keys...), "new scope")
+	values = append(append([]string{"unscoped; affects the entire project"}, values...), "edit a new scope into your configuration file")
+	return keys, values
 }
 
 func NewModel(cc *parser.CC, cfg config.Cfg) Model {
+	options, hints := makeOptions(cfg.Scopes)
 	return Model{
 		single_select.NewModel(
 			config.Faint("select a scope:"),
 			cc.Scope,
-			makeOptions(cfg.Scopes),
+			options, hints,
 			match,
 		),
 		helpbar.NewModel(
@@ -132,7 +121,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			})
 			return m, cmd
 		}
-		values, hints := makeOptHintPair(makeOptions(config.CentralStore.Scopes))
+		values, hints := makeOptions(config.CentralStore.Scopes)
 		m.input.Options = values
 		m.input.Hints = hints
 		if m.input.Cursor >= len(m.input.Options) {

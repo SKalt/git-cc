@@ -2,20 +2,37 @@ package config
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 
-	"github.com/BurntSushi/toml"
-	"github.com/mitchellh/mapstructure"
+	toml "github.com/BurntSushi/toml" // TODO: remove
 	"github.com/muesli/termenv"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 	yaml "gopkg.in/yaml.v3"
 )
+
+type OrderedMap = orderedmap.OrderedMap[string, string]
+
+func ZippedOrderedKeyValuePairs(om *OrderedMap) (keys []string, values []string) { // TODO: rename
+	current := om.Oldest()
+	for {
+		if current != nil {
+			keys = append(keys, current.Key)
+			values = append(values, current.Value)
+			current = current.Next()
+		} else {
+			break
+		}
+	}
+	return
+}
 
 const ExampleCfgFileHeader = `## commit_convention.yml
 ## omit the commit_types to use the default angular-style commit types`
@@ -30,21 +47,31 @@ const ExampleCfgFile = ExampleCfgFileHeader + ExampleCfgFileCommitTypes + Exampl
 var (
 	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
 	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
-	AngularPresetCommitTypes = []map[string]string{
-		{"feat": "adds a new feature"},
-		{"fix": "fixes a bug"},
-		{"docs": "changes only the documentation"},
-		{"style": "changes the style but not the meaning of the code (such as formatting)"},
-		{"perf": "improves performance"},
-		{"test": "adds or corrects tests"},
-		{"build": "changes the build system or external dependencies"},
-		{"chore": "changes outside the code, docs, or tests"},
-		{"ci": "changes to the Continuous Integration (CI) system"},
-		{"refactor": "changes the code without changing behavior"},
-		{"revert": "reverts prior changes"},
-	}
-	CentralStore *Cfg
+	AngularCommitTypes *OrderedMap
+	CentralStore       *Cfg
 )
+
+// instantiate the global more-or-less-constant AngularPresetCommitTypes
+func angularCommitTypes() *OrderedMap {
+	if AngularCommitTypes != nil {
+		return AngularCommitTypes
+	} else {
+		om := orderedmap.New[string, string]()
+		om.Set("feat", "adds a new feature")
+		om.Set("fix", "fixes a bug")
+		om.Set("docs", "changes only the documentation")
+		om.Set("style", "changes the style but not the meaning of the code (such as formatting)")
+		om.Set("perf", "improves performance")
+		om.Set("test", "adds or corrects tests")
+		om.Set("build", "changes the build system or external dependencies")
+		om.Set("chore", "changes outside the code, docs, or tests")
+		om.Set("ci", "changes to the Continuous Integration (CI) system")
+		om.Set("refactor", "changes the code without changing behavior")
+		om.Set("revert", "reverts prior changes")
+		AngularCommitTypes = om
+		return AngularCommitTypes
+	}
+}
 
 const (
 	HelpSubmit = "submit: tab/enter"
@@ -61,12 +88,14 @@ type Cfg struct {
 	gitRepoRoot string
 	gitDir      string
 	configFile  string
-	CommitTypes []map[string]string `mapstructure:"commit_types"`
-	Scopes      []map[string]string `mapstructure:"scopes"`
+	// a custom, ordered map type is needed since maps fail to preserve the
+	// insertion order of their keys: see https://go.dev/play/p/u0SB-LeqisU
+	CommitTypes *OrderedMap
+	Scopes      *OrderedMap
 	// this caps the max len of the `type(scope): description`, not the body
 	// naming inspired by conventional-changelog/commitlint
-	HeaderMaxLength  int  `mapstructure:"header_max_length"`
-	EnforceMaxLength bool `mapstructure:"enforce_header_max_length"`
+	HeaderMaxLength  int
+	EnforceMaxLength bool
 	DryRun           bool
 }
 
@@ -74,10 +103,10 @@ func (original *Cfg) merge(other *Cfg) {
 	if other.configFile != "" {
 		original.configFile = other.configFile
 	}
-	if len(other.CommitTypes) > 0 {
+	if other.CommitTypes.Newest() != nil {
 		original.CommitTypes = other.CommitTypes
 	}
-	if len(other.Scopes) > 0 {
+	if other.Scopes.Newest() != nil {
 		original.Scopes = other.Scopes
 	}
 	original.EnforceMaxLength = other.EnforceMaxLength
@@ -92,8 +121,9 @@ func (cfg *Cfg) ReadCfgFile() (err error) {
 	if configFile == "" {
 		configFile, err = findCCConfigFile(cfg.gitRepoRoot)
 		if err != nil {
+			// TODO: log tried files
 			// fall back to defaults
-			return err
+			return nil
 		}
 	}
 	next, err := parseCCConfigurationFile(configFile)
@@ -106,8 +136,8 @@ func (cfg *Cfg) ReadCfgFile() (err error) {
 
 func Init(dryRun bool) (*Cfg, error) {
 	cfg := Cfg{
-		CommitTypes:     AngularPresetCommitTypes,
-		Scopes:          []map[string]string{},
+		CommitTypes:     angularCommitTypes(),
+		Scopes:          orderedmap.New[string, string](),
 		HeaderMaxLength: 72,
 		//^ s.t. `git log --oneline` should remain within 80 columns w/ a 7-rune
 		// commit hash and one space before the commit message.
@@ -141,7 +171,127 @@ func Init(dryRun bool) (*Cfg, error) {
 	return CentralStore, nil
 }
 
-func readConfigFile(configFile string) (m map[string]interface{}, err error) {
+// turn []string, map[string]string, or []map[string]string into an OrderedMap
+func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
+	insert := func(om *orderedmap.OrderedMap[string, string], key string, value string) (err error) {
+		if _, present := om.Set(key, value); present {
+			err = fmt.Errorf("duplicate key: %s", key)
+		}
+		return
+	}
+
+	handleMap := func(om *orderedmap.OrderedMap[string, string], m map[string]interface{}) (err error) {
+		// alphabetize the keys to keep output deterministic
+		kvp := make([][2]string, 0, len(m))
+		for k, v := range m {
+			switch v2 := v.(type) {
+			case string:
+				kvp = append(kvp, [2]string{k, v2})
+			default:
+				panic(fmt.Errorf("unexpected type: %+v", v2)) // FIXME
+			}
+		}
+		sort.SliceStable(kvp, func(i, j int) bool {
+			return kvp[i][0] < kvp[j][0]
+		})
+		for _, pair := range kvp {
+			if err = insert(om, pair[0], pair[1]); err != nil {
+				return err
+			}
+		}
+		return err
+	}
+
+	switch intermediate1 := raw.(type) {
+	case []interface{}:
+		// guess the capacity to minimize allocations
+		om = orderedmap.New[string, string](orderedmap.WithCapacity[string, string](len(intermediate1)))
+		for _, intermediate2 := range intermediate1 {
+			switch intermediate3 := intermediate2.(type) {
+			case string:
+				if _, present := om.Set(intermediate3, ""); present {
+					return nil, fmt.Errorf("duplicate value: %s", intermediate3)
+				}
+			case map[string]interface{}:
+				if err = handleMap(om, intermediate3); err != nil {
+					return nil, err
+				}
+			default:
+				panic(fmt.Errorf("unknown value `%v`", intermediate3))
+			}
+		}
+		return
+	case map[string]interface{}:
+		om = orderedmap.New[string, string](orderedmap.WithCapacity[string, string](len(intermediate1)))
+		if err = handleMap(om, intermediate1); err != nil {
+			return
+		}
+		return
+	case *orderedmap.OrderedMap[string, interface{}]:
+		panic("..")
+	default:
+		_ = intermediate1.(map[string]string)
+		// for k, v := range i {
+		// 	switch v2 := v {
+		// 	case string:
+		// 		break
+		// 	default:
+		// 		panic(fmt.Errorf("unexpected type '%s' for key %s: '%+v'", reflect.TypeOf(intermediate1).Name(), k, v2))
+		// 	}
+		// }
+		return nil, fmt.Errorf("unexpected format: %+v => %+v", intermediate1, reflect.TypeOf(intermediate1).Name())
+	}
+}
+
+// func parsePackageJson(data []byte) (*Cfg, error) {
+// 	om := orderedmap.New[string, interface{}]() // :/
+// 	if err := om.UnmarshalJSON(data); err != nil {
+// 		return nil, err
+// 	}
+// 	var cfg Cfg
+// 	if raw, present := om.Get("git-cc"); present {
+// 		switch section := raw.(type) {
+// 		case orderedmap.OrderedMap[string, interface{}]:
+// 			// FIXME: extract configuration from val
+// 			if rawScopes, ok := section.Get("scopes"); ok {
+// 				switch intermediate := rawScopes.(type) {
+// 				case []interface{}:
+// 					om, err:=toOrderedMap(rawScopes)
+// 				}
+// 				cfg.Scopes = rawScopes.(*orderedmap.OrderedMap[string, string])
+// 			}
+// 				if rawTypes, ok := section.Get("commit_types"); ok {
+// 					types, err := toOrderedMap(rawTypes)
+// 					if err != nil {
+// 						return nil, err
+// 					}
+// 					cfg.CommitTypes = types
+// 				}
+// 				if maxLen, ok := raw["header_max_length"]; ok {
+// 					switch max := maxLen.(type) {
+// 					case int:
+// 						cfg.HeaderMaxLength = max
+// 					default:
+// 						return nil, fmt.Errorf("unexpected type of value \"header_max_length\" in %s: `%+v`", configFile, max)
+// 					}
+// 				}
+// 				if enforcedLen, ok := raw["enforce_header_max_length"]; ok {
+// 					switch enforced := enforcedLen.(type) {
+// 					case bool:
+// 						cfg.EnforceMaxLength = enforced
+// 					default:
+// 						return nil, fmt.Errorf("Unexpected type for \"header_max_length_enforced\" in %s: `%+v`", configFile, enforcedLen)
+// 					}
+// 				}
+// 			}
+// 		}
+// 		panic("FIXME")
+// 		return &cfg, nil
+// 	}
+// 	return nil, fmt.Errorf("key \"git-cc\" missing from package.json")
+// }
+
+func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 	f, _ := os.Stat(configFile)
 	if f.IsDir() {
 		return nil, fmt.Errorf("found directory `%s`", configFile)
@@ -150,47 +300,63 @@ func readConfigFile(configFile string) (m map[string]interface{}, err error) {
 	if err != nil {
 		return nil, err
 	}
-	ext := filepath.Ext(f.Name())
+	name := f.Name()
+	// if name == "package.json" {
+	// 	// allowed as a special case. Otherwise, prefer writing configuration
+	// 	// in a format that allows comments
+	// 	return parsePackageJson(data)
+	// }
+	var raw map[string]interface{}
+	ext := filepath.Ext(name)
 	switch ext {
-	case ".yaml", ".yml":
-		if err = yaml.Unmarshal(data, &m); err != nil {
+	case ".yaml", ".yml": // order not preserved
+		if err = yaml.Unmarshal(data, &raw); err != nil {
 			return nil, err
-		} else {
-			return
 		}
 	case ".toml":
-		if err = toml.Unmarshal(data, &m); err != nil {
+		if err = toml.Unmarshal(data, &raw); err != nil {
 			return nil, err
-		} else {
-			return
 		}
-	case ".json":
-		if f.Name() == "package.json" {
-			// allow it as a special case. Otherwise, prefer writing configuration
-			// in a format that allows comments
-			if err = json.Unmarshal(data, &m); err != nil {
-				return nil, err
-			} else {
-				return
-			}
-		} else {
-			return nil, fmt.Errorf("only package.json supported")
-		}
+	// case ".json":
+	// 	return nil, fmt.Errorf("only package.json supported, %s found", configFile)
+	default:
+		// all file extensions should already be known when searching for config
+		// files
+		panic("Unsupported config file type: " + configFile)
 	}
-	// all file extensions should already be known when searching for config
-	// files
-	panic("unreachable: " + ext + " <- " + configFile)
-}
 
-func parseCCConfigurationFile(configFile string) (*Cfg, error) {
-	raw, err := readConfigFile(configFile)
-	if err != nil {
-		return nil, err
-	}
 	var cfg Cfg
-	if err := mapstructure.Decode(raw, &cfg); err != nil {
-		return nil, err
+	if rawScopes, ok := raw["scopes"]; ok {
+		scopes, err := toOrderedMap(rawScopes)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Scopes = scopes
 	}
+	if rawTypes, ok := raw["commit_types"]; ok {
+		types, err := toOrderedMap(rawTypes)
+		if err != nil {
+			return nil, err
+		}
+		cfg.CommitTypes = types
+	}
+	if maxLen, ok := raw["header_max_length"]; ok {
+		switch max := maxLen.(type) {
+		case int:
+			cfg.HeaderMaxLength = max
+		default:
+			return nil, fmt.Errorf("unexpected type of value \"header_max_length\" in %s: `%+v`", configFile, max)
+		}
+	}
+	if enforcedLen, ok := raw["enforce_header_max_length"]; ok {
+		switch enforced := enforcedLen.(type) {
+		case bool:
+			cfg.EnforceMaxLength = enforced
+		default:
+			return nil, fmt.Errorf("unexpected type for \"header_max_length_enforced\" in %s: `%+v`", configFile, enforcedLen)
+		}
+	}
+
 	cfg.configFile = configFile // always an absolute path
 	return &cfg, nil
 }
@@ -292,21 +458,17 @@ func GetEditor() string {
 	if editor != "" {
 		return editor
 	}
+	var err error
+	editor, err = getGitVar("GIT_EDITOR")
+	if err != nil {
+		return editor
+	}
 	editor = "vi"
-	_, err := exec.LookPath(editor)
+	_, err = exec.LookPath(editor)
 	if err != nil {
 		msg := "unable to open the fallback editor"
 		hint := "hint: set the EDITOR env variable or install vi"
 		log.Fatalf(fmt.Sprintf("%s: %q\n%s\n", msg, editor, hint))
-	}
-	return editor
-}
-
-// search GIT_EDITOR, then fall back to $EDITOR
-func GetGitEditor() string {
-	editor, err := getGitVar("GIT_EDITOR") // TODO: shell-split the string?
-	if err != nil {
-		return GetEditor()
 	}
 	return editor
 }

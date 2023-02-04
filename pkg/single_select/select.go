@@ -1,6 +1,7 @@
 package single_select
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -29,12 +30,9 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func NewModel(context string, value string, options []map[string]string, match func(*Model, string, string) bool) Model {
-	values, hints := []string{}, []string{}
-	for _, option := range options {
-		for value, hint := range option {
-			values, hints = append(values, value), append(hints, hint)
-		}
+func NewModel(context string, value string, options []string, hints []string, match func(*Model, string, string) bool) Model {
+	if len(options) != len(hints) {
+		panic(fmt.Errorf("len(hints) %d != %d len(options)", len(hints), len(options)))
 	}
 	input := textinput.NewModel()
 	input.Placeholder = "type to select"
@@ -45,7 +43,7 @@ func NewModel(context string, value string, options []map[string]string, match f
 
 	result := Model{
 		context:   context,
-		Options:   values,
+		Options:   options,
 		Hints:     hints,
 		textInput: input,
 		match:     match,

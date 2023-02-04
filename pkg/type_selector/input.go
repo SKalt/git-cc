@@ -16,9 +16,12 @@ type Model struct {
 }
 
 func NewModel(cc *parser.CC, cfg *config.Cfg) Model {
+	types, hints := config.ZippedOrderedKeyValuePairs(cfg.CommitTypes)
 	return Model{
 		single_select.NewModel(
-			config.Faint("select a commit type: "), cc.Type, cfg.CommitTypes,
+			config.Faint("select a commit type: "),
+			cc.Type,
+			types, hints,
 			single_select.MatchStart,
 		),
 		helpbar.NewModel(
