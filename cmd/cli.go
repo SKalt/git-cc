@@ -78,6 +78,19 @@ func doCommit(message string, dryRun bool, commitParams []string) {
 	}
 }
 
+// 0000 0001 : invalid type
+// 0000 0010 : missing type
+// 0000 0100 : invalid scope
+// 0000 1000 : missing description
+type ValidationErrors = uint8
+
+const (
+	InvalidType        uint8 = 1 << 0
+	MissingType        uint8 = 1 << 1
+	InvalidScope       uint8 = 1 << 2
+	MissingDescription uint8 = 1 << 3
+)
+
 // run the conventional-commit helper logic. This may/not break into the TUI.
 func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 
@@ -105,13 +118,27 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 	} else {
 		cc, _ = parser.ParseAsMuchOfCCAsPossible((strings.Join(args, " ")))
 	}
-	valid := cc.MinimallyValid() &&
-		cc.ValidCommitType(cfg.CommitTypes) &&
-		(cc.ValidScope(cfg.Scopes) || cc.Scope == "")
-	if !valid {
+	var validationErrors ValidationErrors = 0
+	if cc.Type == "" {
+		validationErrors |= InvalidType
+	} else {
+		if _, valid := cfg.CommitTypes.Get(cc.Type); valid {
+			validationErrors |= InvalidType
+		}
+	}
+	if cc.Scope != "" {
+		if _, valid := cfg.Scopes.Get(cc.Scope); valid {
+			validationErrors |= InvalidScope
+		}
+	}
+	if cc.Description == "" {
+		validationErrors |= MissingDescription
+	}
+
+	if validationErrors != 0 {
 		choice := make(chan string, 1)
 		m := initialModel(choice, cc, cfg)
-		ui := tea.NewProgram(m, tea.WithInputTTY())
+		ui := tea.NewProgram(m, tea.WithInputTTY(), tea.WithAltScreen())
 		if err := ui.Start(); err != nil {
 			log.Fatal(err)
 		}
