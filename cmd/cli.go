@@ -122,12 +122,12 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 	if cc.Type == "" {
 		validationErrors |= InvalidType
 	} else {
-		if _, valid := cfg.CommitTypes.Get(cc.Type); valid {
+		if _, valid := cfg.CommitTypes.Get(cc.Type); !valid {
 			validationErrors |= InvalidType
 		}
 	}
 	if cc.Scope != "" {
-		if _, valid := cfg.Scopes.Get(cc.Scope); valid {
+		if _, valid := cfg.Scopes.Get(cc.Scope); !valid {
 			validationErrors |= InvalidScope
 		}
 	}
