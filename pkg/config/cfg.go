@@ -217,7 +217,8 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 					return nil, err
 				}
 			default:
-				panic(fmt.Errorf("unknown value `%v`", intermediate3))
+				err = fmt.Errorf("unknown value `%v`", intermediate3)
+				return
 			}
 		}
 		return
@@ -228,7 +229,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 		}
 		return
 	case *orderedmap.OrderedMap[string, interface{}]:
-		panic("..")
+		panic("..") // FIXME
 	default:
 		_ = intermediate1.(map[string]string)
 		// for k, v := range i {
