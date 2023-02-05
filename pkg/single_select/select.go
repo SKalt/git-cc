@@ -85,7 +85,7 @@ func (m Model) maxOptLen() int {
 		}
 	}
 	m.maxOptionLength = max
-	return max
+	return m.maxOptionLength
 }
 
 func MatchStart(m *Model, query string, option string) bool {
@@ -133,6 +133,28 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 			}
 			return model, cmd
 		case tea.KeyDown:
+			if model.Cursor < len(model.matched)-1 {
+				model.Cursor += 1
+			} else {
+				model.Cursor = 0
+			}
+			return model, cmd
+		default:
+			model.textInput, cmd = model.textInput.Update(msg)
+			model.matched, model.filtered = model.filter(model.textInput.Value())
+			model.Cursor = 0
+			return model, cmd
+		}
+	case tea.MouseEvent:
+		switch msg.Type {
+		case tea.MouseWheelUp:
+			if model.Cursor > 0 {
+				model.Cursor -= 1
+			} else {
+				model.Cursor = len(model.matched) - 1
+			}
+			return model, cmd
+		case tea.MouseWheelDown:
 			if model.Cursor < len(model.matched)-1 {
 				model.Cursor += 1
 			} else {
