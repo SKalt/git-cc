@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.11](https://github.com/SKalt/git-cc/compare/v0.0.10...v0.0.11) (2023-02-05)
+
+
+### Features
+
+* **cli:** accept map[string]string config ([e12c2f1](https://github.com/SKalt/git-cc/commit/e12c2f1ad8f34e0f10441b2340e1a41b61120596))
+* **cli:** add --redo flag ([923d3a1](https://github.com/SKalt/git-cc/commit/923d3a1d5aba532862daff8bb9f86411242de5b0)), closes [#26](https://github.com/SKalt/git-cc/issues/26)
+* **cli:** send new scope to clipboard!!! ([adcb96c](https://github.com/SKalt/git-cc/commit/adcb96c2d9c8acb7e8c9c6c31b02f4fc6f394e7f))
+* **dist:** add homebrew tap ([13ed429](https://github.com/SKalt/git-cc/commit/13ed429968c1d546eee3e3bd87ac4ad3f167b436)), closes [#18](https://github.com/SKalt/git-cc/issues/18)
+* **dist:** attempt manually triggering the gh release pipeline ([05a12b7](https://github.com/SKalt/git-cc/commit/05a12b73af777a8ee63a2f585d7588c98c821e85))
+
+
+### Bug Fixes
+
+* **cli:** fail fast on empty redo commits, remove old comments/unused code ([45e4d4a](https://github.com/SKalt/git-cc/commit/45e4d4a290d335960032e78f37f6d3ce97e20bb6))
+* **cli:** return error rather than immediately panicing ([b0e02b4](https://github.com/SKalt/git-cc/commit/b0e02b45e85bb3c91a6da3f9b78df03a01ea3823))
+* **cli:** validation-error conditions ([03b3a0c](https://github.com/SKalt/git-cc/commit/03b3a0cac9d538e44d95ea2fa9f3f110bf613048))
+
 ### [0.0.10](https://github.com/SKalt/git-cc/compare/v0.0.9...v0.0.10) (2022-11-06)
 
 
