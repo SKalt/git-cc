@@ -8,9 +8,13 @@ import (
 // see https://medium.com/@armin.heller/using-parser-combinators-in-go-e63b3ad69c94,
 // https://github.com/Geal/nom (v5+), and https://bodil.lol/parser-combinators/
 
+// It would be possible to use a smaller datatype for the `Result.Type` field, but
+// the Result struct should be pointer-aligned. Thus, using any type less than the size
+// of a pointer wouldn't save space.
+
 type Result struct {
 	Children  []Result
-	Type      string // TODO: use enum rather than a string?
+	Type      string
 	Value     string
 	Remaining []rune
 }
@@ -116,22 +120,6 @@ func Not(parser Parser) Parser {
 	}
 }
 
-func toRunes(i interface{}) []rune {
-	switch i.(type) {
-	case string:
-		str, _ := i.(string)
-		return []rune(str)
-	case rune:
-		r, _ := i.(rune)
-		return []rune{r}
-	case []rune:
-		runes, _ := i.([]rune)
-		return runes
-	default:
-		panic(fmt.Errorf("%v is not string or []rune", i))
-	}
-}
-
 func Tag(tag string) Parser {
 	toMatch := []rune(tag)
 	return func(input []rune) (*Result, error) {
@@ -208,7 +196,7 @@ func Empty(input []rune) (*Result, error) {
 func OneOfTheseRunes(str string) Parser {
 	set := make(map[rune]void)
 	var present void
-	for _, char := range []rune(str) {
+	for _, char := range str {
 		set[char] = present
 	}
 	parsers := make([]Parser, len(set))
@@ -216,15 +204,6 @@ func OneOfTheseRunes(str string) Parser {
 		parsers = append(parsers, LiteralRune(char))
 	}
 	return Any(parsers...)
-}
-
-func asString(result []rune) interface{} {
-	return string(result)
-}
-func clone(input []rune) []rune {
-	cloned := make([]rune, len(input))
-	copy(cloned, input)
-	return cloned
 }
 
 func Sequence(parsers ...Parser) Parser {
@@ -236,7 +215,7 @@ func Sequence(parsers ...Parser) Parser {
 		return result, nil
 	}
 }
-func Delimeted(start Parser, middle Parser, end Parser) Parser {
+func Delimited(start Parser, middle Parser, end Parser) Parser {
 	return func(input []rune) (*Result, error) {
 		result, err := Sequence(start, middle, end)(input)
 		if err != nil {
@@ -299,15 +278,3 @@ func Regex(pattern string) Parser {
 		}
 	}
 }
-
-// func Range(start rune, end rune) Parser {
-// 	return Not(Empty)(
-// 		func(input []rune) (ParserResult, error) {
-// 			if input[0] >= start && input[0] <= end {
-// 				// ok
-// 			} else {
-// 				return
-// 			}
-// 		},
-// 	)
-// }
