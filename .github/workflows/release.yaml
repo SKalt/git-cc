@@ -5,6 +5,7 @@ on:
     tags:
       - v0**
       - v1**
+  workflow_dispatch:
 
 permissions:
   contents: write
