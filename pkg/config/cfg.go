@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	toml "github.com/BurntSushi/toml" // TODO: remove
+	toml "github.com/BurntSushi/toml"
 	"github.com/muesli/termenv"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	yaml "gopkg.in/yaml.v3"
@@ -122,8 +122,7 @@ func (cfg *Cfg) ReadCfgFile() (err error) {
 		configFile, err = findCCConfigFile(cfg.gitRepoRoot)
 		if err != nil {
 			// TODO: log tried files
-			// fall back to defaults
-			return nil
+			return nil // fall back to defaults
 		}
 	}
 	next, err := parseCCConfigurationFile(configFile)
@@ -188,7 +187,8 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 			case string:
 				kvp = append(kvp, [2]string{k, v2})
 			default:
-				panic(fmt.Errorf("unexpected type: %+v", v2)) // FIXME
+				err = fmt.Errorf("unexpected type: %+v", v2)
+				return err
 			}
 		}
 		sort.SliceStable(kvp, func(i, j int) bool {
@@ -252,7 +252,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 // 	if raw, present := om.Get("git-cc"); present {
 // 		switch section := raw.(type) {
 // 		case orderedmap.OrderedMap[string, interface{}]:
-// 			// FIXME: extract configuration from val
+// 			// extract configuration from val
 // 			if rawScopes, ok := section.Get("scopes"); ok {
 // 				switch intermediate := rawScopes.(type) {
 // 				case []interface{}:

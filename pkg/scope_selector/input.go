@@ -107,7 +107,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			log.Fatal(msg.err)
 		}
 		if err := config.CentralStore.ReadCfgFile(); err != nil {
-			// TODO: warn about parse error
 			newScope := m.input.CurrentInput()
 			editorCmd := config.EditCfgFileCmd(
 				config.CentralStore,
@@ -120,7 +119,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return editorFinishedMsg{err}
 			})
 			return m, cmd
-		}
+		} // else {} // TODO: warn about parse error
 		values, hints := makeOptions(config.CentralStore.Scopes)
 		m.input.Options = values
 		m.input.Hints = hints
