@@ -22,3 +22,6 @@ release:
 clean:
 	go clean
 	rm -rf dist
+
+# so to cut a release, run `make changelog`, inspect the changes, and then run
+# `git push --tags --follow-tags`
