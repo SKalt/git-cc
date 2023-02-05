@@ -5,10 +5,16 @@ import (
 	"strings"
 )
 
+// A parsed Conventional Commit (CC). See https://www.conventionalcommits.org/en/v1.0.0/
+// for more details about what a CC consists of.
 type CC struct {
-	Type           string
-	Scope          string
-	Description    string
+	// A noun such as feat, fix, etc. that describes what kind of change this commit introduces.
+	Type string
+	// An optional noun describing what part of the codebase was changed.
+	Scope string
+	// A short summary of the changes in the commit
+	Description string
+	// free-form description of the changes; possibly multiple paragraphs.
 	Body           string
 	Footers        []string
 	BreakingChange bool
@@ -68,31 +74,7 @@ func (cc *CC) ToString() string {
 	return s.String()
 }
 
-func (cc *CC) MinimallyValid() bool {
-	return cc.Type != "" && cc.Description != ""
-}
-
-func (cc *CC) ValidCommitType(commitTypes []map[string]string) bool {
-	for _, commitType := range commitTypes {
-		_, matched := commitType[cc.Type]
-		if matched {
-			return true
-		}
-	}
-	return false
-}
-
-func (cc *CC) ValidScope(knownScopes []map[string]string) bool {
-	for _, scope := range knownScopes {
-		_, matched := scope[cc.Scope]
-		if matched {
-			return true
-		}
-	}
-	return len(knownScopes) == 0 && len(cc.Scope) == 0
-}
-
-// import contsants?
+// import constants?
 // https://www.conventionalcommits.org/en/v1.0.0/#specification
 var Newline = Marked("Newline")(Any(LiteralRune('\n'), Tag("\r\n")))
 
@@ -112,7 +94,7 @@ var CommitType Parser = Marked("CommitType")(
 )
 
 // A scope MAY be provided after a type. A scope MUST consist of a noun describing a section of the codebase surrounded by parenthesis, e.g., fix(parser):
-var Scope Parser = Marked("Scope")(Delimeted(Tag("("), TakeUntil(Tag(")")), Tag(")")))
+var Scope Parser = Marked("Scope")(Delimited(Tag("("), TakeUntil(Tag(")")), Tag(")")))
 var BreakingChangeBang Parser = Marked("BreakingChangeBang")(Tag("!"))
 var ShortDescription Parser = Marked("Description")(TakeUntil(Any(Empty, Newline)))
 
