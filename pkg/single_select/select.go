@@ -178,7 +178,6 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 	default:
 		model.textInput, cmd = model.textInput.Update(msg)
 		model.matched, model.filtered = model.filter(model.textInput.Value())
-		// model.Cursor = 0
 		return model, cmd
 	}
 }
