@@ -13,17 +13,20 @@ import (
 )
 
 type Model struct {
-	Options         []string
-	Hints           []string
-	match           func(*Model, string, string) bool
-	filtered        [][2]string
-	matched         [][2]string
+	Options  []string
+	Hints    []string
+	match    func(*Model, string, string) bool
+	filtered [][2]string
+	matched  [][2]string
+	// the offset (0-indexed) of the selection within the options
 	Cursor          int
 	maxOptionLength int
 	context         string
-	Width           int // in runes
-	Height          int // in lines
-	textInput       textinput.Model
+	// in runes
+	Width int
+	// in lines
+	Height    int
+	textInput textinput.Model
 }
 
 func (m Model) Init() tea.Cmd {
@@ -175,7 +178,7 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 	default:
 		model.textInput, cmd = model.textInput.Update(msg)
 		model.matched, model.filtered = model.filter(model.textInput.Value())
-		model.Cursor = 0
+		// model.Cursor = 0
 		return model, cmd
 	}
 }
