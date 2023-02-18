@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.12](https://github.com/SKalt/git-cc/compare/v0.0.11...v0.0.12) (2023-02-18)
+
+
+### Features
+
+* **cli:** handle mouse-based scrolling ([7bcb1c2](https://github.com/SKalt/git-cc/commit/7bcb1c2be84f0ae14c6832d4e02f3ee140964f5c))
+
+
+### Bug Fixes
+
+* **cli:** don't reset search on every cursor-blink ([f7164a4](https://github.com/SKalt/git-cc/commit/f7164a4fe19f38abe83945e623cbac1c1504ea4a)), closes [#34](https://github.com/SKalt/git-cc/issues/34)
+
 ### [0.0.11](https://github.com/SKalt/git-cc/compare/v0.0.10...v0.0.11) (2023-02-05)
 
 
