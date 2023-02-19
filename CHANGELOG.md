@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.13](https://github.com/SKalt/git-cc/compare/v0.0.12...v0.0.13) (2023-02-19)
+
+
+### Features
+
+* **devtools:** use ./dist/git-cc as primary git-cc ([2c9ecdb](https://github.com/SKalt/git-cc/commit/2c9ecdbfbdc442d343c5e77b7ef8ef637508dfc0))
+
+
+### Bug Fixes
+
+* **dist:** use `homebrew`-prefixed repo as homebrew tap ([7a82692](https://github.com/SKalt/git-cc/commit/7a826929891468e1052d3c3b2fdbb6b17f353e1a))
+
 ### [0.0.12](https://github.com/SKalt/git-cc/compare/v0.0.11...v0.0.12) (2023-02-18)
 
 
