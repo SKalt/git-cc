@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.14](https://github.com/SKalt/git-cc/compare/v0.0.13...v0.0.14) (2023-02-19)
+
+
+### Bug Fixes
+
+* **dist:** use separate gh token for brew tap ([1d97296](https://github.com/SKalt/git-cc/commit/1d972963e6defd56675285ce7dfb9dfde06dc1f8))
+
 ### [0.0.13](https://github.com/SKalt/git-cc/compare/v0.0.12...v0.0.13) (2023-02-19)
 
 
