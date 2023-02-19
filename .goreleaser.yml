@@ -52,8 +52,8 @@ brews: # see https://goreleaser.com/customization/homebrew/
     description: *description
     tap:
       owner: skalt
-      name: git-cc
-      branch: tap
+      name: homebrew-git-cc
+      branch: main
     download_strategy: CurlDownloadStrategy
     dependencies:
       - name: git
