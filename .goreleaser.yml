@@ -54,6 +54,9 @@ brews: # see https://goreleaser.com/customization/homebrew/
       owner: skalt
       name: homebrew-git-cc
       branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     download_strategy: CurlDownloadStrategy
+    test: |
+      system "#{bin}/git-cc --version"
     dependencies:
       - name: git
