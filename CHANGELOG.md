@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.16](https://github.com/SKalt/git-cc/compare/v0.0.15...v0.0.16) (2023-03-04)
+
+
+### Features
+
+* **cli:** allow using ctrl+n/ctrl+p to navigate ([b5ccbf8](https://github.com/SKalt/git-cc/commit/b5ccbf8d8181b78f30b7ea705760cf986e6785f6)), closes [#33](https://github.com/SKalt/git-cc/issues/33)
+* **dist:** add brew installation to installer, docs ([7362b74](https://github.com/SKalt/git-cc/commit/7362b74c403b43191e47aba1fa8827e7a7e24763))
+
+
+### Bug Fixes
+
+* **cli:** correct creation of config file for new scopes ([05a3c90](https://github.com/SKalt/git-cc/commit/05a3c90e36d534e3e30a24220bd06c7e5b6bf02c))
+
 ### [0.0.15](https://github.com/SKalt/git-cc/compare/v0.0.14...v0.0.15) (2023-02-19)
 
 
