@@ -1,6 +1,6 @@
 # git-cc
 
-a git extension to help write [conventional commits][cc-standard]
+A git extension to help write [conventional commits][cc-standard]
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/skalt/git-cc)
 ![Go report card](https://goreportcard.com/badge/github.com/skalt/git-cc)
@@ -46,29 +46,54 @@ You can buy a paid license at [https://indiecc.com/~skalt/git-cc](https://indiec
 
 ## Installation
 
-Go to [the project releases page][releases page] to download the appropriate package. Alternately, use the installer script at [./scripts/install.sh](./scripts/install.sh).
+### Manual installation
 
+Go to [the project releases page][releases page] to download the appropriate packaging format.
 Please verify the the shasum of the downloaded executable for you before you run it.
-Alternately, verify that the installer script would correctly check the shasum of the downloaded package.
 
-### On linux or mac/darwin
+### Using `brew`
 
 ```sh
-repo=skalt/git-cc
-branch=master
-curl -sL https://raw.githubusercontent.com/$repo/$branch/scripts/install.sh | sh
+brew tap skalt/git-cc
+brew install git-cc
 ```
 
-### Using platform-specific package managers
+### Using the installer script for Linux or Mac
 
-You can also use the install script to use platform-specific package managers. See the script's usage instructions for more details.
+First, take a second to verify that the installer script would correctly check the shasum of the downloaded package.
+Then, run the following commands:
+
+<!-- TODO: automate populating outputs with `cog` or similar -->
 
 ```sh
 repo=skalt/git-cc
 branch=master
-curl -sL https://raw.githubusercontent.com/$repo/$branch/scripts/install.sh > /tmp/install.sh;
+curl -sL https://raw.githubusercontent.com/$repo/$branch/scripts/install.sh > /tmp/install.sh
+shasum -a 256 /tmp/install.sh | sed 's/^/# /g'
+# 805354a9b0db5648af785086af5a4af036d5281ea5999bda055c888186d36cd7  /tmp/install.sh
+```
+
+```sh
 chmod +x /tmp/install.sh
-/tmp/install.sh --help
+/tmp/install.sh --help | sed 's/^/# /g'
+# USAGE: ./install.sh [-h|--help] [--download-only|--dry-run] [FMT]
+# download a release of git-cc for your OS and instruction set architecture.
+#
+# ARGS:
+#   -h|--help        print this message and exit
+#   --download-only  download as FMT, but do not install
+#   --dry-run        print rather than follow the download url for the binary
+#   FMT              The download format. Valid values are
+#                      - tar.gz (default)
+#                      - apk
+#                      - brew
+#                      - deb
+#                      - exe
+#                      - rpm
+```
+
+```sh
+/tmp/install.sh
 ```
 
 ### From source with go
@@ -76,13 +101,19 @@ chmod +x /tmp/install.sh
 To compile from source, run `make install` inside the source directory.
 You'll need to have a `go >= 1.19` toolchain and to have your `$GOPATH/bin` on your `$PATH`.
 
+```sh
+git clone git@bitbucket.org
+```
+
 ## Prior art:
 
+- [`@commitlint/prompt-cli`][commitlint]
 - [`committizen`][commitizen]
 - [`commitsar`][commitsar]
 
 <!-- links -->
 
+[commitlint]: https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/prompt-cli
 [cc-standard]: https://www.conventionalcommits.org/en/v1.0.0/
 [commitizen]: https://github.com/commitizen/cz-cli
 [commitlint]: https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional
