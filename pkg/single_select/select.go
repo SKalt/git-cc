@@ -128,14 +128,14 @@ func Update(msg tea.Msg, model Model) (Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			return model, tea.Quit
-		case tea.KeyUp:
+		case tea.KeyUp, tea.KeyCtrlP:
 			if model.Cursor > 0 {
 				model.Cursor -= 1
 			} else {
 				model.Cursor = len(model.matched) - 1
 			}
 			return model, cmd
-		case tea.KeyDown:
+		case tea.KeyDown, tea.KeyCtrlN:
 			if model.Cursor < len(model.matched)-1 {
 				model.Cursor += 1
 			} else {
