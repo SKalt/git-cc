@@ -14,7 +14,7 @@ import (
 )
 
 const emptyScopeTemplate = "scopes:\n%s\n"
-const newScopeTemplate = "  %s: description of what short-form \"%s\" represents"
+const newScopeTemplate = "  %s: description of what short-form `%s` represents"
 
 type Model struct {
 	input             single_select.Model
@@ -135,7 +135,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			// TODO: *gracefully* handle editor exiting with an error
 			log.Fatal(msg.err)
 		}
-		if err := config.CentralStore.ReadCfgFile(); err != nil {
+		if err := config.CentralStore.ReadCfgFile(true); err != nil {
+			log.Panicf("%+v", err)
 			newScope := m.input.CurrentInput()
 			editorCmd := config.EditCfgFileCmd(
 				config.CentralStore,

@@ -116,13 +116,16 @@ func (original *Cfg) merge(other *Cfg) {
 }
 
 // Find &/ read the configuration file into the passed config object
-func (cfg *Cfg) ReadCfgFile() (err error) {
+func (cfg *Cfg) ReadCfgFile(mustExist bool) (err error) {
 	configFile := cfg.configFile
 	if configFile == "" {
 		configFile, err = findCCConfigFile(cfg.gitRepoRoot)
 		if err != nil {
-			// TODO: log tried files
-			return nil // fall back to defaults
+			if mustExist {
+				return err
+			} else {
+				return nil // fall back to defaults
+			}
 		}
 	}
 	next, err := parseCCConfigurationFile(configFile)
@@ -163,7 +166,7 @@ func Init(dryRun bool) (*Cfg, error) {
 		}
 	}
 	cfg.gitRepoRoot = repoRoot
-	if err := cfg.ReadCfgFile(); err != nil {
+	if err := cfg.ReadCfgFile(false); err != nil {
 		return nil, err
 	}
 	CentralStore = &cfg
@@ -365,9 +368,9 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 func findCCConfigFile(gitRepoRoot string) (string, error) {
 	// pkgMeta := map[string]map[string]interface{}{} // cache the unmarshalled package.json/pyproject.toml for reuse
 	candidateFiles := [...]string{
-		"commit_convention.toml",
 		"commit_convention.yaml",
 		"commit_convention.yml",
+		"commit_convention.toml",
 		// TODO: support commitlint config
 		// ".commitlintrc",
 		// ".commitlintrc.json",
@@ -377,13 +380,13 @@ func findCCConfigFile(gitRepoRoot string) (string, error) {
 		// "package.json",
 		// "pyproject.toml",
 	}
-	dirsToSearch := make([]string, 3)
+	dirsToSearch := make([]string, 0, 3)
 
 	cwd, err := filepath.Abs(".")
 	if err == nil {
 		dirsToSearch = append(dirsToSearch, cwd)
 	}
-	if gitRepoRoot != "" {
+	if gitRepoRoot != "" && gitRepoRoot != cwd {
 		dirsToSearch = append(dirsToSearch, gitRepoRoot)
 	}
 	configHome := os.Getenv("XDG_CONFIG_HOME")
@@ -393,7 +396,7 @@ func findCCConfigFile(gitRepoRoot string) (string, error) {
 	if configHome != "" {
 		dirsToSearch = append(dirsToSearch, configHome)
 	}
-	tried := make([]string, len(candidateFiles)*len(dirsToSearch))
+	tried := make([]string, 0, len(candidateFiles)*len(dirsToSearch))
 	for _, dir := range dirsToSearch {
 		for _, candidate := range candidateFiles {
 			configFile := path.Join(dir, candidate)
@@ -405,7 +408,7 @@ func findCCConfigFile(gitRepoRoot string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("no configuration found in %q", tried)
+	return "", fmt.Errorf("no configuration found in \n  - %s", strings.Join(tried, "\n  - "))
 }
 
 // find the root of the tree that git is working on
@@ -418,7 +421,7 @@ func getGitRepoRoot() (string, error) {
 	if err != nil {
 		return "", err
 	} else {
-		return out, nil
+		return strings.TrimRight(out, "\r\n"), nil
 	}
 }
 
@@ -494,10 +497,10 @@ func EditCfgFileCmd(cfg *Cfg, defaultFileContent string) *exec.Cmd {
 	}
 	cfgFile := cfg.configFile
 	if cfgFile == "" {
-		cfgFile = "commit_convention.yaml"
-		f, err := os.Create(path.Join(cfg.gitRepoRoot, cfgFile))
+		cfgFile = path.Join(cfg.gitRepoRoot, "commit_convention.yaml")
+		f, err := os.Create(cfgFile)
 		if err != nil {
-			log.Fatalf("unable to create file %s: %+v", cfgFile, err)
+			log.Panicf("unable to create file %s: '%+v'", cfgFile, err)
 		}
 		_, err = f.WriteString(defaultFileContent)
 		if err != nil {

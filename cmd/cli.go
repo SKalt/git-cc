@@ -211,7 +211,7 @@ var Cmd = &cobra.Command{
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 			cfg, err := config.Init(dryRun)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("%s", err)
 			}
 			if redo, _ := flags.GetBool("redo"); redo {
 				redoMessage(cmd)
