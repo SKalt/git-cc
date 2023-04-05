@@ -136,7 +136,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			log.Fatal(msg.err)
 		}
 		if err := config.CentralStore.ReadCfgFile(true); err != nil {
-			log.Panicf("%+v", err)
+			log.Fatalf(">>%+v", err) // FIXME: handle this error
 			newScope := m.input.CurrentInput()
 			editorCmd := config.EditCfgFileCmd(
 				config.CentralStore,

@@ -159,7 +159,7 @@ func Init(dryRun bool) (*Cfg, error) {
 	repoRoot, err := getGitRepoRoot()
 	if err != nil {
 		if dryRun {
-			CentralStore.gitRepoRoot = "."
+			cfg.gitRepoRoot = "."
 		} else {
 			// fatal since we need to look for configuration there
 			return nil, err
@@ -505,6 +505,10 @@ func EditCfgFileCmd(cfg *Cfg, defaultFileContent string) *exec.Cmd {
 		_, err = f.WriteString(defaultFileContent)
 		if err != nil {
 			log.Fatalf("unable to write to file: %v", err)
+		}
+		err = f.Close()
+		if err != nil {
+			log.Fatalf("unable to close file: %s : %v", cfgFile, err)
 		}
 	}
 	editCmd = append(editCmd, cfgFile)
