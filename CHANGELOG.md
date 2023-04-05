@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.17](https://github.com/SKalt/git-cc/compare/v0.0.16...v0.0.17) (2023-04-05)
+
+
+### Bug Fixes
+
+* premature pointer reference ([6e51b85](https://github.com/SKalt/git-cc/commit/6e51b8524e2aa62a51bd111d20d8b353924c57d6))
+
 ### [0.0.16](https://github.com/SKalt/git-cc/compare/v0.0.15...v0.0.16) (2023-03-04)
 
 
