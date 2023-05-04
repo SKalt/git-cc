@@ -49,7 +49,7 @@ You can buy a paid license at [https://indiecc.com/~skalt/git-cc](https://indiec
 ### Manual installation
 
 Go to [the project releases page][releases page] to download the appropriate packaging format.
-Please verify the the shasum of the downloaded executable for you before you run it.
+Please verify the shasum of the downloaded executable for you before you run it.
 
 ### Using `brew`
 
