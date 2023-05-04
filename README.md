@@ -25,7 +25,7 @@ git cc -m "invalid(stuff): should return 1"
 
 ### Configuration
 
-See [`./commit_convention.yml`](./commit_convention.yml) for an example configuration file.
+See [`./commit_convention.yaml`](./commit_convention.yaml) for an example configuration file.
 
 ## Why write conventional commits through an interactive CLI?
 
