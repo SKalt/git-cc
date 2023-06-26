@@ -25,7 +25,7 @@ git cc -m "invalid(stuff): should return 1"
 
 ### Configuration
 
-See [`./commit_convention.yml`](./commit_convention.yml) for an example configuration file.
+See [`./commit_convention.yaml`](./commit_convention.yaml) for an example configuration file.
 
 ## Why write conventional commits through an interactive CLI?
 
@@ -49,7 +49,7 @@ You can buy a paid license at [https://indiecc.com/~skalt/git-cc](https://indiec
 ### Manual installation
 
 Go to [the project releases page][releases page] to download the appropriate packaging format.
-Please verify the the shasum of the downloaded executable for you before you run it.
+Please verify the shasum of the downloaded executable for you before you run it.
 
 ### Using `brew`
 
