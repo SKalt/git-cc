@@ -21,7 +21,9 @@
             rnix-lsp
             gopls
             gotools
-            nodejs
+            libfaketime
+	    glibc
+	    nodejs
             nodePackages.pnpm
             goreleaser
             ttyd

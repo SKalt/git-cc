@@ -42,24 +42,34 @@
 
 Output assets/demo.gif
 Output assets/demo.mp4
+Output assets/demo.txt
+# Output assets/demo.ascii
 
 Set FontSize 24
 Set Width 1200
 Set Height 800
 
 Hide
+
 Type@1ms "export PATH=$(pwd)/dist:$PATH old_dir=$(pwd) new_dir=/tmp/git-repo"
 Enter
+
 Type@1ms "rm -rf $new_dir && mkdir -p $new_dir && cd $new_dir"
 Enter
+
 Type@1ms "cp $old_dir/commit_convention.yaml $new_dir && git init && git checkout -b main"
 Enter
+
 Type@1ms "touch ./foo && git add foo"
 Enter
-Type "clear"
+
+Type@1ms "export LD_PRELOAD=$(nix-build '<nixpkgs>' --no-build-output -A libfaketime)/lib/libfaketime.so.1 FAKETIME='2000-01-01 00:00:00'"
 Enter
 
-Type "export EDITOR=vi"
+Type@1ms "clear"
+Enter
+
+Type@1ms "export EDITOR=vi"
 Enter
 Show
 
