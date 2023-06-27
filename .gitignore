@@ -3,3 +3,4 @@ dist
 .vscode
 .pnpm-debug.log
 .direnv
+result
