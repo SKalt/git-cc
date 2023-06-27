@@ -13,7 +13,7 @@ test-rpm-install: test-release-process
 #^ requires that GITHUB_TOKEN be set, and the token have the 'repo' scope
 
 ./assets/demo.mp4: ./assets/demo.tape
-	cat ./assets/demo.tape | vhs
+	faketime '2000-01-01 00:00:00' vhs ./assets/demo.tape
 
 changelog:
 	pnpx standard-version

@@ -51,25 +51,30 @@ Set Height 800
 
 Hide
 
-Type@1ms "export PATH=$(pwd)/dist:$PATH old_dir=$(pwd) new_dir=/tmp/git-repo"
+
+Type@0ms "export old_dir=$(pwd) new_dir=/tmp/git-repo"
 Enter
 
-Type@1ms "rm -rf $new_dir && mkdir -p $new_dir && cd $new_dir"
+Require git
+Require git-cc
+Require vim
+
+Type@0ms "set -euo pipefail"
 Enter
 
-Type@1ms "cp $old_dir/commit_convention.yaml $new_dir && git init && git checkout -b main"
+Type@0ms "rm -rf $new_dir && mkdir -p $new_dir && cd $new_dir"
 Enter
 
-Type@1ms "touch ./foo && git add foo"
+Type@0ms "cp $old_dir/commit_convention.yaml $new_dir && git init && git checkout -b main"
 Enter
 
-Type@1ms "export LD_PRELOAD=$(nix-build '<nixpkgs>' --no-build-output -A libfaketime)/lib/libfaketime.so.1 FAKETIME='2000-01-01 00:00:00'"
+Type@0ms "touch ./foo && git add foo"
 Enter
 
-Type@1ms "clear"
+Type@0ms "clear"
 Enter
 
-Type@1ms "export EDITOR=vi"
+Type@0ms "export EDITOR=vi"
 Enter
 Show
 
@@ -93,13 +98,13 @@ Enter
 # enter a new scope
 Sleep 200ms
 Escape
-Type "12G"
+Type "12G" # go to line 12
 Enter
-Type "$"
-Type "i"
+Type "$" # go to the end of the line
+Type "i" # enter insert mode
 Right
 Enter
-Backspace 2
+# Backspace 2
 Type "- scope: description of scope"
 Escape
 Type ":wq"

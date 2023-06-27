@@ -1,0 +1,1215 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> export EDITOR=vi
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> export EDITOR=vi
+> git cc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> export EDITOR=vi
+> git cc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a commit type:
+   type to select
+ > feat     adds a new feature
+   fix      fixes a bug
+   docs     changes only the documentation
+   style    changes the style but not the meaning of the code (such
+            as formatting)
+   perf     improves performance
+   test     adds or corrects tests
+   build    changes the build system or external dependencies
+   chore    changes outside the code, docs, or tests
+   ci       changes to the Continuous Integration (CI) system
+   refactor changes the code without changing behavior
+   revert   reverts prior changes
+
+submit: tab/enter; navigate: up/down; cancel: ctrl+c
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a commit type:
+   type to select
+ > feat     adds a new feature
+   fix      fixes a bug
+   docs     changes only the documentation
+   style    changes the style but not the meaning of the code (such
+            as formatting)
+   perf     improves performance
+   test     adds or corrects tests
+   build    changes the build system or external dependencies
+   chore    changes outside the code, docs, or tests
+   ci       changes to the Continuous Integration (CI) system
+   refactor changes the code without changing behavior
+   revert   reverts prior changes
+
+submit: tab/enter; navigate: up/down; cancel: ctrl+c
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a commit type:
+   fe
+ > feat     adds a new feature
+   fix      fixes a bug
+   docs     changes only the documentation
+   style    changes the style but not the meaning of the code (such as
+            formatting)
+   perf     improves performance
+   test     adds or corrects tests
+   build    changes the build system or external dependencies
+   chore    changes outside the code, docs, or tests
+   ci       changes to the Continuous Integration (CI) system
+   refactor changes the code without changing behavior
+   revert   reverts prior changes
+
+submit: tab/enter; navigate: up/down; cancel: ctrl+c
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a commit type:
+   fe
+ > feat     adds a new feature
+   fix      fixes a bug
+   docs     changes only the documentation
+   style    changes the style but not the meaning of the code (such as
+            formatting)
+   perf     improves performance
+   test     adds or corrects tests
+   build    changes the build system or external dependencies
+   chore    changes outside the code, docs, or tests
+   ci       changes to the Continuous Integration (CI) system
+   refactor changes the code without changing behavior
+   revert   reverts prior changes
+
+submit: tab/enter; navigate: up/down; cancel: ctrl+c
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a scope:
+   type to select
+ >           unscoped; affects the entire project
+   parser    parses conventional commits
+   cli       UI for command-line invocation
+   dist      the release; means of distribution
+   devtools  tools for development
+   new scope edit a new scope into your configuration file
+
+submit: tab/enter; navigate: up/down; go back: shift+tab
+cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a scope:
+   type to select
+ >           unscoped; affects the entire project
+   parser    parses conventional commits
+   cli       UI for command-line invocation
+   dist      the release; means of distribution
+   devtools  tools for development
+   new scope edit a new scope into your configuration file
+
+submit: tab/enter; navigate: up/down; go back: shift+tab
+cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a scope:
+   scope
+ > new scope edit a new scope into your configuration file
+             unscoped; affects the entire project
+   parser    parses conventional commits
+   cli       UI for command-line invocation
+   dist      the release; means of distribution
+   devtools  tools for development
+
+submit: tab/enter; navigate: up/down; go back: shift+tab
+cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a scope:
+   scope
+ > new scope edit a new scope into your configuration file
+             unscoped; affects the entire project
+   parser    parses conventional commits
+   cli       UI for command-line invocation
+   dist      the release; means of distribution
+   devtools  tools for development
+
+submit: tab/enter; navigate: up/down; go back: shift+tab
+cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+<t-repo/commit_convention.yaml" 12L, 547B           1,1           All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+<t-repo/commit_convention.yaml" 12L, 547B           1,1           All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+<t-repo/commit_convention.yaml" 12L, 547B ^[        1,1           All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+<t-repo/commit_convention.yaml" 12L, 547B           12,3          All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+<t-repo/commit_convention.yaml" 12L, 547B           12,3          All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+<t-repo/commit_convention.yaml" 12L, 547B           12,35         All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+-- INSERT --                                        12,35         All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+~
+~
+~
+~
+~
+~
+~
+~
+-- INSERT --                                        12,36         All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+
+~
+~
+~
+~
+~
+~
+~
+-- INSERT --                                        13,5          All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+  - scope: description of scope
+~
+~
+~
+~
+~
+~
+~
+-- INSERT --                                        13,32         All
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+  - scope: description of scope
+~
+~
+~
+~
+~
+~
+~
+                                          ^[
+────────────────────────────────────────────────────────────────────────────────
+# not present: commit_types: using the default angular-style commit ty
+pes
+# they would look like this though:
+# commit_types:
+#  - type: description of what the short-form "type" means
+scopes:
+  # Array<{[key: string]: string}> defines both the order of scopes (n
+ice for
+  # keeping the most frequently used scopes/types on top, and requires
+  # explanation of each commit_type/scope.
+  - parser: parses conventional commits
+  - cli: UI for command-line invocation
+  - dist: the release; means of distribution
+  - devtools: tools for development
+  - scope: description of scope
+~
+~
+~
+~
+~
+~
+~
+:wq
+────────────────────────────────────────────────────────────────────────────────
+select a scope:
+   scope
+ > scope     description of scope
+             unscoped; affects the entire project
+   parser    parses conventional commits
+   cli       UI for command-line invocation
+   dist      the release; means of distribution
+   devtools  tools for development
+   new scope edit a new scope into your configuration file
+
+submit: tab/enter; navigate: up/down; go back: shift+tab
+cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+select a scope:
+   scope
+ > scope     description of scope
+             unscoped; affects the entire project
+   parser    parses conventional commits
+   cli       UI for command-line invocation
+   dist      the release; means of distribution
+   devtools  tools for development
+   new scope edit a new scope into your configuration file
+
+submit: tab/enter; navigate: up/down; go back: shift+tab
+cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+A short description of the changes:
+
+feat(scope):
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c (13/72)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+A short description of the changes:
+
+feat(scope):
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c (13/72)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+A short description of the changes:
+
+feat(scope): informative message about the change
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c (49/72)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+A short description of the changes:
+
+feat(scope): informative message about the change
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c (49/72)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+Breaking changes: if any.
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+Breaking changes: if any.
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+Breaking changes: what this commit broke
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+Breaking changes: what this commit broke
+
+submit: tab/enter; go back: shift+tab; cancel: ctrl+c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+~
+~
+~
+</git-repo/.git/COMMIT_EDITMSG" 17L, 361B           1,1           All
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+~
+~
+~
+</git-repo/.git/COMMIT_EDITMSG" 17L, 361B           3,1           All
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+~
+~
+~
+-- INSERT --                                        3,1           All
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+~
+-- INSERT --                                        5,1           All
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+~
+-- INSERT --                                        3,1           All
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+additional details
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+~
+-- INSERT --                                        3,19          All
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+additional details
+
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+-- INSERT --                                        4,1           All
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+additional details
+
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+                                          ^[
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+additional details
+
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+:wq
+────────────────────────────────────────────────────────────────────────────────
+feat(scope)!: informative message about the change
+
+additional details
+
+
+BREAKING CHANGE: what this commit broke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+#
+# Initial commit
+#
+# Changes to be committed:
+#       new file:   foo
+#
+# Untracked files:
+#       commit_convention.yaml
+#
+~
+~
+".git/COMMIT_EDITMSG" 20L, 382B written
+────────────────────────────────────────────────────────────────────────────────
+new scope "scope" not copied to clipboard
+
+[main (root-commit) 163009a] feat(scope)!: informative message about t
+he change
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 foo
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
