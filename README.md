@@ -25,7 +25,20 @@ git cc -m "invalid(stuff): should return 1"
 
 ### Configuration
 
-See [`./commit_convention.yaml`](./commit_convention.yaml) for an example configuration file.
+`git-cc` searches for a configuration file named `commit_convention.{yaml,yml,toml}`.
+Note that `git-cc` prefers the extension `yaml` over `yml`, and `yml` over `toml`.
+
+
+`git-cc` searches the following directories for a configuration file in this order:
+
+```
+${PWD}/
+${REPO_ROOT}/         # ignored if not inside a git repo
+${REPO_ROOT}/.config/ # ignored if not inside a git repo
+${XDG_CONFIG_HOME}/
+```
+
+See [`./config/commit_convention.yaml`](./.config/commit_convention.yaml) for an example configuration file.
 
 ## Why write conventional commits through an interactive CLI?
 

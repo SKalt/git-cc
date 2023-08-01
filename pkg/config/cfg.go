@@ -388,6 +388,12 @@ func findCCConfigFile(gitRepoRoot string) (string, error) {
 	}
 	if gitRepoRoot != "" && gitRepoRoot != cwd {
 		dirsToSearch = append(dirsToSearch, gitRepoRoot)
+		dotConfigDir := path.Join(gitRepoRoot, ".config")
+		if dirInfo, err := os.Stat(dotConfigDir); err == nil {
+			if dirInfo.IsDir() {
+				dirsToSearch = append(dirsToSearch, dotConfigDir)
+			}
+		}
 	}
 	configHome := os.Getenv("XDG_CONFIG_HOME")
 	if configHome == "" {
