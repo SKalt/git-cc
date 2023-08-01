@@ -87,7 +87,8 @@ func Faint(s string) string {
 type Cfg struct {
 	gitRepoRoot string
 	gitDir      string
-	configFile  string
+	// an empty string means no config file was used
+	ConfigFile string
 	// a custom, ordered map type is needed since maps fail to preserve the
 	// insertion order of their keys: see https://go.dev/play/p/u0SB-LeqisU
 	CommitTypes *OrderedMap
@@ -100,8 +101,8 @@ type Cfg struct {
 }
 
 func (original *Cfg) merge(other *Cfg) {
-	if other.configFile != "" {
-		original.configFile = other.configFile
+	if other.ConfigFile != "" {
+		original.ConfigFile = other.ConfigFile
 	}
 	if other.CommitTypes.Newest() != nil {
 		original.CommitTypes = other.CommitTypes
@@ -117,9 +118,9 @@ func (original *Cfg) merge(other *Cfg) {
 
 // Find &/ read the configuration file into the passed config object
 func (cfg *Cfg) ReadCfgFile(mustExist bool) (err error) {
-	configFile := cfg.configFile
+	configFile := cfg.ConfigFile
 	if configFile == "" {
-		configFile, err = findCCConfigFile(cfg.gitRepoRoot)
+		configFile, _, err = FindCCConfigFile(cfg.gitRepoRoot)
 		if err != nil {
 			if mustExist {
 				return err
@@ -156,7 +157,7 @@ func Init(dryRun bool) (*Cfg, error) {
 		}
 	}
 	cfg.gitDir = gitDir
-	repoRoot, err := getGitRepoRoot()
+	repoRoot, err := GetGitRepoRoot()
 	if err != nil {
 		if dryRun {
 			cfg.gitRepoRoot = "."
@@ -361,11 +362,11 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 		}
 	}
 
-	cfg.configFile = configFile // always an absolute path
+	cfg.ConfigFile = configFile // always an absolute path
 	return &cfg, nil
 }
 
-func findCCConfigFile(gitRepoRoot string) (string, error) {
+func FindCCConfigFile(gitRepoRoot string) (string, []string, error) {
 	// pkgMeta := map[string]map[string]interface{}{} // cache the unmarshalled package.json/pyproject.toml for reuse
 	candidateFiles := [...]string{
 		"commit_convention.yaml",
@@ -386,8 +387,10 @@ func findCCConfigFile(gitRepoRoot string) (string, error) {
 	if err == nil {
 		dirsToSearch = append(dirsToSearch, cwd)
 	}
-	if gitRepoRoot != "" && gitRepoRoot != cwd {
-		dirsToSearch = append(dirsToSearch, gitRepoRoot)
+	if gitRepoRoot != "" {
+		if gitRepoRoot != cwd {
+			dirsToSearch = append(dirsToSearch, gitRepoRoot)
+		}
 		dotConfigDir := path.Join(gitRepoRoot, ".config")
 		if dirInfo, err := os.Stat(dotConfigDir); err == nil {
 			if dirInfo.IsDir() {
@@ -408,17 +411,17 @@ func findCCConfigFile(gitRepoRoot string) (string, error) {
 			configFile := path.Join(dir, candidate)
 			_, err := os.Stat(configFile)
 			if err == nil {
-				return configFile, nil
+				return configFile, tried, nil
 			} else {
 				tried = append(tried, configFile)
 			}
 		}
 	}
-	return "", fmt.Errorf("no configuration found in \n  - %s", strings.Join(tried, "\n  - "))
+	return "", tried, fmt.Errorf("no configuration found in \n  - %s", strings.Join(tried, "\n  - "))
 }
 
 // find the root of the tree that git is working on
-func getGitRepoRoot() (string, error) {
+func GetGitRepoRoot() (string, error) {
 	if env := os.Getenv("GIT_WORK_TREE"); env != "" {
 		// there might be a `$GIT_COMMON_DIR?`
 		return env, nil
@@ -501,7 +504,7 @@ func EditCfgFileCmd(cfg *Cfg, defaultFileContent string) *exec.Cmd {
 			editCmd = append(editCmd, part)
 		}
 	}
-	cfgFile := cfg.configFile
+	cfgFile := cfg.ConfigFile
 	if cfgFile == "" {
 		cfgFile = path.Join(cfg.gitRepoRoot, "commit_convention.yaml")
 		f, err := os.Create(cfgFile)

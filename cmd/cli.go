@@ -213,6 +213,19 @@ var Cmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("%s", err)
 			}
+			if showConfig, _ := flags.GetBool("show-config"); showConfig {
+				repoRoot, _ := config.GetGitRepoRoot()
+				_, tried, _ := config.FindCCConfigFile(repoRoot)
+				for _, f := range tried {
+					fmt.Printf("# %s\n", f)
+				}
+				file := cfg.ConfigFile
+				if file == "" {
+					file = "<default>"
+				}
+				fmt.Printf("config file path: %s\n", file)
+				os.Exit(0)
+			}
 			if redo, _ := flags.GetBool("redo"); redo {
 				redoMessage(cmd)
 			}
@@ -228,6 +241,7 @@ func init() {
 	flags.Bool("redo", false, "Reuse your last commit message")
 	flags.StringArrayP("message", "m", []string{}, "pass a complete conventional commit. If valid, it'll be committed without editing.")
 	flags.Bool("version", false, "print the version")
+	flags.Bool("show-config", false, "print the path to the config file and the relevant config ")
 	// TODO: accept more of git commit's flags; see https://git-scm.com/docs/git-commit
 	// likely: --cleanup=<mode>
 	// more difficult, and possibly better done manually: --amend, -C <commit>
