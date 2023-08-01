@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.18](https://github.com/SKalt/git-cc/compare/v0.0.17...v0.0.18) (2023-08-01)
+
+
+### Features
+
+* search for config in ${REPO_ROOT}/.config ([50b4e55](https://github.com/SKalt/git-cc/commit/50b4e55d5725c3feab4ef479a8551cbfccfdb58d))
+
 ### [0.0.17](https://github.com/SKalt/git-cc/compare/v0.0.16...v0.0.17) (2023-04-05)
 
 
