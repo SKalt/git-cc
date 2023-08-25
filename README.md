@@ -89,6 +89,8 @@ shasum -a 256 /tmp/install.sh | sed 's/^/# /g'
 ```sh
 chmod +x /tmp/install.sh
 /tmp/install.sh --help | sed 's/^/# /g'
+```
+```txt
 # USAGE: ./install.sh [-h|--help] [--download-only|--dry-run] [FMT]
 # download a release of git-cc for your OS and instruction set architecture.
 #
