@@ -13,8 +13,7 @@ import (
 	"github.com/skalt/git-cc/pkg/single_select"
 )
 
-const emptyScopeTemplate = "scopes:\n%s\n"
-const newScopeTemplate = "  %s: description of what short-form `%s` represents"
+const newScopeTemplate = "description of what short-form `%s` represents"
 
 type Model struct {
 	input             single_select.Model
@@ -114,13 +113,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			err := clipboard.WriteAll(m.newScope)
 			m.copiedToClipboard = (err == nil)
 		}
-		// editorStartMsg{newScope}
 		editorCmd := config.EditCfgFileCmd(
 			config.CentralStore,
-			config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
-				emptyScopeTemplate,
-				fmt.Sprintf(newScopeTemplate, m.newScope, m.newScope),
-			),
+			// config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
+			// 	emptyScopeTemplate,
+			// 	fmt.Sprintf(newScopeTemplate, m.newScope, m.newScope),
+			// ),
 		)
 		cmd = tea.ExecProcess(editorCmd, func(err error) tea.Msg {
 			return editorFinishedMsg{err}
@@ -138,13 +136,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if err := config.CentralStore.ReadCfgFile(true); err != nil {
 			log.Fatalf(">>%+v", err) // FIXME: handle this error
 			newScope := m.input.CurrentInput()
-			editorCmd := config.EditCfgFileCmd(
-				config.CentralStore,
-				config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
-					emptyScopeTemplate,
-					fmt.Sprintf(newScopeTemplate, newScope, newScope),
-				),
-			)
+			suggested := config.CentralStore.Clone()
+			if suggested.Scopes == nil {
+				suggested.Scopes = &config.OrderedMap{}
+			}
+			suggested.Scopes.Set(newScope, fmt.Sprintf(newScopeTemplate, newScope))
+			editorCmd := config.EditCfgFileCmd(&suggested)
 			cmd = tea.ExecProcess(editorCmd, func(err error) tea.Msg {
 				return editorFinishedMsg{err}
 			})

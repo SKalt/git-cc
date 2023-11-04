@@ -20,6 +20,60 @@ import (
 
 type OrderedMap = orderedmap.OrderedMap[string, string]
 
+func iter(om *OrderedMap, callback func(key string, value string)) {
+	current := om.Oldest()
+	for {
+		if current != nil {
+			callback(current.Key, current.Value)
+			current = current.Next()
+		} else {
+			break
+		}
+	}
+}
+func renderKv(buf *bytes.Buffer, prefix, key, sep, value string) {
+	buf.WriteString(prefix) // comment &/ indent the line
+	buf.WriteString(key)
+	buf.WriteString(sep)
+	buf.WriteString(value)
+	buf.WriteRune('\n')
+}
+
+func renderYamlKv(buf *bytes.Buffer, prefix string, key string, value string) {
+	renderKv(buf, prefix+"  - ", key, ": ", value)
+}
+func renderTomlKv(buf *bytes.Buffer, prefix string, key string, value string) {
+	renderKv(buf, prefix+"  ", key, " = ", value)
+}
+
+func renderYaml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap) {
+	buf.WriteString(prefix) // comment &/ indent the line
+	buf.WriteString(header + ":\n")
+	current := om.Oldest()
+	for {
+		if current != nil {
+			renderYamlKv(buf, prefix, current.Key, current.Value)
+			current = current.Next()
+		} else {
+			break
+		}
+	}
+}
+
+func renderToml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap) {
+	buf.WriteString(prefix) // comment &/ indent the line
+	buf.WriteString("[" + header + "]\n")
+	current := om.Oldest()
+	for {
+		if current != nil {
+			renderTomlKv(buf, prefix, current.Key, current.Value)
+			current = current.Next()
+		} else {
+			break
+		}
+	}
+}
+
 func ZippedOrderedKeyValuePairs(om *OrderedMap) (keys []string, values []string) { // TODO: rename
 	current := om.Oldest()
 	for {
@@ -34,15 +88,15 @@ func ZippedOrderedKeyValuePairs(om *OrderedMap) (keys []string, values []string)
 	return
 }
 
-const ExampleCfgFileHeader = `## commit_convention.yml
-## omit the commit_types to use the default angular-style commit types`
-const ExampleCfgFileCommitTypes = `
-# commit_types:
-#   - type: description of what the short-form "type" means`
-const ExampleCfgFileScopes = `
-# scopes:
-#   - scope: description of what the short-form "scope" represents`
-const ExampleCfgFile = ExampleCfgFileHeader + ExampleCfgFileCommitTypes + ExampleCfgFileScopes
+// const ExampleCfgFileHeader = `## commit_convention.yml
+// ## omit the commit_types to use the default angular-style commit types`
+// const ExampleCfgFileCommitTypes = `
+// # commit_types:
+// #   - type: description of what the short-form "type" means`
+// const ExampleCfgFileScopes = `
+// # scopes:
+// #   - scope: description of what the short-form "scope" represents`
+// const ExampleCfgFile = ExampleCfgFileHeader + ExampleCfgFileCommitTypes + ExampleCfgFileScopes
 
 var (
 	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
@@ -100,6 +154,27 @@ type Cfg struct {
 	DryRun           bool
 }
 
+func (c *Cfg) Clone() Cfg {
+	commitTypes := orderedmap.New[string, string]()
+	iter(c.CommitTypes, func(k string, v string) {
+		commitTypes.Set(k, v)
+	})
+	scopes := orderedmap.New[string, string]()
+	iter(c.Scopes, func(k string, v string) {
+		scopes.Set(k, v)
+	})
+	return Cfg{
+		gitRepoRoot:      c.gitRepoRoot,
+		gitDir:           c.gitDir,
+		ConfigFile:       c.ConfigFile,
+		CommitTypes:      commitTypes,
+		Scopes:           scopes,
+		HeaderMaxLength:  c.HeaderMaxLength,
+		EnforceMaxLength: c.EnforceMaxLength,
+		DryRun:           c.DryRun,
+	}
+}
+
 func (original *Cfg) merge(other *Cfg) {
 	if other.ConfigFile != "" {
 		original.ConfigFile = other.ConfigFile
@@ -114,6 +189,37 @@ func (original *Cfg) merge(other *Cfg) {
 	if other.HeaderMaxLength > 0 {
 		original.HeaderMaxLength = other.HeaderMaxLength
 	}
+}
+
+func ConstructDefaultFile(
+	cfg *Cfg,
+) string {
+	buf := bytes.Buffer{}
+	buf.WriteString("## omit the commit_types to use the default angular-style commit types\n")
+	var render func(*bytes.Buffer, string, string, *OrderedMap)
+	switch filepath.Ext(cfg.ConfigFile) {
+	case ".yaml", ".yml":
+		render = renderYaml
+		break
+	case ".toml":
+		render = renderToml
+		break
+	default:
+		log.Fatalf("unsupported default config file type: %s", cfg.ConfigFile)
+	}
+
+	render(&buf, "# ", "commit_types", cfg.CommitTypes)
+	if cfg.Scopes == nil {
+		cfg.Scopes = orderedmap.New[string, string]()
+	}
+	if cfg.Scopes.Len() > 0 {
+		render(&buf, "", "scopes", cfg.Scopes)
+	} else {
+		cfg := cfg.Clone()
+		cfg.Scopes.Set("scope", "description of what the short-form `scope` represents")
+		render(&buf, "# ", "scopes", cfg.Scopes) // TODO: add a comment explaining how to add scopes
+	}
+	return buf.String()
 }
 
 // Find &/ read the configuration file into the passed config object
@@ -137,6 +243,7 @@ func (cfg *Cfg) ReadCfgFile(mustExist bool) (err error) {
 	return err
 }
 
+// Initialize the global CentralStore of configuration.
 func Init(dryRun bool) (*Cfg, error) {
 	cfg := Cfg{
 		CommitTypes:     angularCommitTypes(),
@@ -314,7 +421,7 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 	var raw map[string]interface{}
 	ext := filepath.Ext(name)
 	switch ext {
-	case ".yaml", ".yml": // order not preserved
+	case ".yaml", ".yml": // FIXME: order not preserved in {[string]: string} maps
 		if err = yaml.Unmarshal(data, &raw); err != nil {
 			return nil, err
 		}
@@ -338,14 +445,14 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 		}
 		cfg.Scopes = scopes
 	}
-	if rawTypes, ok := raw["commit_types"]; ok {
+	if rawTypes, present := raw["commit_types"]; present {
 		types, err := toOrderedMap(rawTypes)
 		if err != nil {
 			return nil, err
 		}
 		cfg.CommitTypes = types
 	}
-	if maxLen, ok := raw["header_max_length"]; ok {
+	if maxLen, present := raw["header_max_length"]; present {
 		switch max := maxLen.(type) {
 		case int:
 			cfg.HeaderMaxLength = max
@@ -353,7 +460,7 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 			return nil, fmt.Errorf("unexpected type of value \"header_max_length\" in %s: `%+v`", configFile, max)
 		}
 	}
-	if enforcedLen, ok := raw["enforce_header_max_length"]; ok {
+	if enforcedLen, present := raw["enforce_header_max_length"]; present {
 		switch enforced := enforcedLen.(type) {
 		case bool:
 			cfg.EnforceMaxLength = enforced
@@ -494,8 +601,50 @@ func GetCommitMessageFile() string {
 	)
 }
 
+func InitDefaultCfgFile(cfg *Cfg, format string) error {
+	if cfg.ConfigFile != "" && !cfg.DryRun {
+		return fmt.Errorf("config file already exists: %s", cfg.ConfigFile)
+	} else {
+		dir := path.Join(cfg.gitRepoRoot, ".config")
+		repoPermissions, err := os.Stat(cfg.gitRepoRoot)
+		if err != nil {
+			log.Fatalf("unable to stat directory %s: %v", cfg.gitRepoRoot, err)
+		}
+		if _, err := os.Stat(dir); err != nil {
+			if os.IsNotExist(err) && !cfg.DryRun {
+				err = os.Mkdir(dir, repoPermissions.Mode().Perm())
+				// use the same permissions as the repo root
+				if err != nil {
+					log.Fatalf("unable to create directory %s: %v", dir, err)
+				}
+			} else {
+				log.Fatalf("unable to stat directory %s: %v", dir, err)
+			}
+		}
+		cfg.ConfigFile = path.Join(dir, "commit_convention."+format)
+		contents := ConstructDefaultFile(cfg)
+		if cfg.DryRun {
+			fmt.Println(contents)
+		} else {
+			f, err := os.Create(cfg.ConfigFile)
+			if err != nil {
+				log.Fatalf("unable to create file %s: '%+v'", cfg.ConfigFile, err)
+			}
+			_, err = f.WriteString(contents)
+			if err != nil {
+				log.Fatalf("unable to write to file: %v", err)
+			}
+			err = f.Close()
+			if err != nil {
+				log.Fatalf("unable to close file: %s : %v", cfg.ConfigFile, err)
+			}
+		}
+	}
+	return nil
+}
+
 // interactively edit the config file, if any was used.
-func EditCfgFileCmd(cfg *Cfg, defaultFileContent string) *exec.Cmd {
+func EditCfgFileCmd(cfg *Cfg) *exec.Cmd {
 	editCmd := []string{}
 	// sometimes `$EDITOR` can be a script with spaces, like `code --wait`
 	// TODO: handle quotes in `$EDITOR`?
@@ -504,23 +653,10 @@ func EditCfgFileCmd(cfg *Cfg, defaultFileContent string) *exec.Cmd {
 			editCmd = append(editCmd, part)
 		}
 	}
-	cfgFile := cfg.ConfigFile
-	if cfgFile == "" {
-		cfgFile = path.Join(cfg.gitRepoRoot, "commit_convention.yaml")
-		f, err := os.Create(cfgFile)
-		if err != nil {
-			log.Panicf("unable to create file %s: '%+v'", cfgFile, err)
-		}
-		_, err = f.WriteString(defaultFileContent)
-		if err != nil {
-			log.Fatalf("unable to write to file: %v", err)
-		}
-		err = f.Close()
-		if err != nil {
-			log.Fatalf("unable to close file: %s : %v", cfgFile, err)
-		}
+	if cfg.ConfigFile == "" {
+		InitDefaultCfgFile(cfg, "yaml")
 	}
-	editCmd = append(editCmd, cfgFile)
+	editCmd = append(editCmd, cfg.ConfigFile)
 	cmd := exec.Command(editCmd[0], editCmd[1:]...)
 	return cmd
 }

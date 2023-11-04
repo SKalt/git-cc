@@ -195,14 +195,24 @@ func redoMessage(cmd *cobra.Command) {
 var Cmd = &cobra.Command{
 	Use:   "git-cc",
 	Short: "write conventional commits",
-	// not using cobra subcommands since they prevent passing arbitrary arguments
+	// not using cobra subcommands since they prevent passing arbitrary arguments,
+	// and I'd like to be able to start an invocation like `git-cc this is the commit message`
+	// without having to think about whether `this` is a subcommand.
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		_, err := config.Init(dryRun)
+		if err != nil {
+			log.Fatalf("unable to initialize config: %s", err)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		flags := cmd.Flags()
+		// FIXME: move version, etc into subcommands
 		if version, _ := flags.GetBool("version"); version {
 			versionMode()
 			os.Exit(0)
 		} else if genCompletion, _ := flags.GetBool("generate-shell-completion"); genCompletion {
-			generateShellCompletion(cmd, args)
+			generateShellCompletion(cmd, args) // FIXME: use subcommand instead
 			os.Exit(0)
 		} else if genManPage, _ := flags.GetBool("generate-man-page"); genManPage {
 			generateManPage(cmd, args)
@@ -226,6 +236,22 @@ var Cmd = &cobra.Command{
 				fmt.Printf("config file path: %s\n", file)
 				os.Exit(0)
 			}
+			if init, _ := flags.GetBool("init"); init {
+				format, _ := cmd.Flags().GetString("config-format")
+				switch format {
+				case "yaml", "yml", "toml":
+					break
+				default:
+					log.Fatalf("unsupported default config-file format: %s", format)
+				}
+				if err != nil {
+					log.Fatalf("%s", err)
+				}
+				if err := config.InitDefaultCfgFile(cfg, format); err != nil {
+					log.Fatalf("%s", err)
+				}
+				os.Exit(0)
+			}
 			if redo, _ := flags.GetBool("redo"); redo {
 				redoMessage(cmd)
 			}
@@ -234,34 +260,74 @@ var Cmd = &cobra.Command{
 	},
 }
 
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "initialize a config file if none is present",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("init", args)
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		format, _ := cmd.Flags().GetString("config-format")
+		cfg, err := config.Init(dryRun)
+		switch format {
+		case "yaml", "yml", "toml":
+			break
+		default:
+			log.Fatalf("unsupported default config-file format: %s", format)
+		}
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+		if err := config.InitDefaultCfgFile(cfg, format); err != nil {
+			log.Fatalf("%s", err)
+		}
+	},
+}
+
 func init() {
-	flags := Cmd.Flags()
-	flags.BoolP("help", "h", false, "print the usage of git-cc")
-	flags.Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
-	flags.Bool("redo", false, "Reuse your last commit message")
-	flags.StringArrayP("message", "m", []string{}, "pass a complete conventional commit. If valid, it'll be committed without editing.")
-	flags.Bool("version", false, "print the version")
-	flags.Bool("show-config", false, "print the path to the config file and the relevant config ")
-	// TODO: accept more of git commit's flags; see https://git-scm.com/docs/git-commit
-	// likely: --cleanup=<mode>
-	// more difficult, and possibly better done manually: --amend, -C <commit>
-	// --reuse-message=<commit>, -c <commit>, --reedit-message=<commit>,
-	// --fixup=<commit>, --squash=<commit>
-	flags.String("author", "", "delegated to git-commit")
-	flags.String("date", "", "delegated to git-commit")
-	flags.BoolP("all", "a", false, "see the git-commit docs for --all|-a")
-	flags.BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
-	flags.Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
-	flags.Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
-	flags.Bool("no-edit", false, "Use the selected commit message without launching an editor.")
-	flags.BoolP("no-verify", "n", false, "Bypass git hooks")
-	flags.Bool("verify", true, "Ensure git hooks run")
-	// https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
-	flags.Bool("no-signoff", true, "Don't add a a `Signed-off-by` trailer to the commit message")
-	flags.Bool("generate-man-page", false, "Generate a man page in your manpath")
-	flags.Bool(
-		"generate-shell-completion",
-		false,
-		"print a bash/zsh/fish/powershell completion script to stdout",
-	)
+	{ // flags for git-cc
+		flags := Cmd.Flags()
+		flags.BoolP("help", "h", false, "print the usage of git-cc")
+		flags.Bool("dry-run", false, "Only print the resulting conventional commit message; don't commit.")
+		flags.Bool("redo", false, "Reuse your last commit message")
+		flags.StringArrayP("message", "m", []string{}, "pass a complete conventional commit. If valid, it'll be committed without editing.")
+		flags.Bool("version", false, "print the version")
+		flags.Bool("show-config", false, "print the path to the config file and the relevant config ")
+		// TODO: accept more of git commit's flags; see https://git-scm.com/docs/git-commit
+		// likely: --cleanup=<mode>
+		// more difficult, and possibly better done manually: --amend, -C <commit>
+		// --reuse-message=<commit>, -c <commit>, --reedit-message=<commit>,
+		// --fixup=<commit>, --squash=<commit>
+		flags.String("author", "", "delegated to git-commit")
+		flags.String("date", "", "delegated to git-commit")
+		flags.BoolP("all", "a", false, "see the git-commit docs for --all|-a")
+		flags.BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
+		flags.Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
+		flags.Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
+		flags.Bool("no-edit", false, "Use the selected commit message without launching an editor.")
+		flags.BoolP("no-verify", "n", false, "Bypass git hooks")
+		flags.Bool("verify", true, "Ensure git hooks run")
+		// https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify
+		flags.Bool("no-signoff", true, "Don't add a a `Signed-off-by` trailer to the commit message")
+		flags.Bool("generate-man-page", false, "Generate a man page in your manpath")
+		flags.Bool(
+			"generate-shell-completion",
+			false,
+			"print a bash/zsh/fish/powershell completion script to stdout",
+		)
+		flags.Bool("init", false, "initialize a config file if none is present")
+		flags.String("config-format", "yaml", "The format of the config file to generate. One of: toml, yml, yaml")
+	}
+	// { // flags for git-cc init
+	// 	flags := initCmd.Flags()
+	// 	flags.Bool("dry-run", false, "Only print the resulting configuration; don't commit.")
+	// 	flags.StringP(
+	// 		"format",
+	// 		"f",
+	// 		"yaml",
+	// 		"The format of the config file to generate. One of: toml, yml, yaml",
+	// 	)
+	// }
+	// { // assemble sub-commands
+	// 	Cmd.AddCommand(initCmd)
+	// }
 }
