@@ -45,12 +45,12 @@ nfpms:
       # - apk
       - deb
       - rpm
-      # it'd be neat to have nix, npm, gem, and pypi packages as well! 
+      # it'd be neat to have nix, npm, gem, and pypi packages as well!
 brews: # see https://goreleaser.com/customization/homebrew/
   - homepage: *homepage
     license: *license
     description: *description
-    tap:
+    repository:
       owner: skalt
       name: homebrew-git-cc
       branch: main
