@@ -49,13 +49,28 @@ An interactive command-line application helps with following the standard.
 
 ## Licensing
 
-`git-cc` is source-provided software, not free software:
+For the details, see [./LICENSE.md](./LICENSE.md).
 
-> To use software listed on this site to make money or for work, you need to buy a license. If you’re part of a team, everyone on your team who uses the software needs to buy one. You can [try before you buy](#free-trials), to make sure the software works and integrates well with your prototypes.
+`git-cc` is source-provided software, not open-source software: it's offered under either [the PolyForm Free Trial 1.0.0 license](./licenses/PolyForm-Free-Trial-1.0.0.md), [the PolyForm Noncommercial 1.0.0 license](./licenses/PolyForm-Noncommercial-1.0.0.md), or a per-developer commercial license.
+This means anyone can use the software for noncommercial purposes and trial the software for commercial use for a month.
+Anyone using the software to make money after their trial expires needs to purchase a commercial license.
 
-For more details, see [./LICENSE.md](./LICENSE.md).
+You can purchase a commercial license [via a one-time GitHub sponsorship](https://github.com/sponsors/skalt/sponsorships?tier_id=335824).
 
-You can buy a paid license at [https://indiecc.com/~skalt/git-cc](https://indiecc.com/~skalt/git-cc).
+
+<details><summary>
+  Prior licenses apply to previous versions of <code>git-cc</code>.
+</summary>
+
+- From 2021-08-25 to 2023-11-14, `git-cc` was offered under the Indie Code Catalog Standard Deal, version 4.0.1 or higher. The licenses can be found at commit [`b682f27e`](https://github.com/SKalt/git-cc/commit/b682f27e1fb9d3c06f9bfbcc9403e4343e739a11).
+IndieCC shut down, prompting relicensing.
+
+- From 2020-11-23 to 2021-08-25, `git-cc` was licensed under the strictEq free and paid licenses. The licenses can be found at commit [`7ca8e95`](https://github.com/SKalt/git-cc/blob/7ca8e95c1dc25ee87eeeb0d73f0b2ddef1aa9f29/LICENSE.md). StrictEq rebranded to indieCC, prompting relicensing.
+
+If you bought an indieCC or strictEq paid license, that license still grants you rights to copy and use updated versions `git-cc` even after the license change.
+
+</details>
+
 
 ## Installation
 
@@ -116,9 +131,6 @@ chmod +x /tmp/install.sh
 To compile from source, run `make install` inside the source directory.
 You'll need to have a `go >= 1.19` toolchain and to have your `$GOPATH/bin` on your `$PATH`.
 
-```sh
-git clone git@bitbucket.org
-```
 
 ## Prior art:
 
