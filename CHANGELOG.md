@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.0](https://github.com/SKalt/git-cc/compare/v0.0.19...v0.1.0) (2023-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* The license changed. However,
+the terms should be _mostly_ the same, i.e. free
+for noncommercial work or a short commercial
+trial.
+
+### Features
+
+* **cli:** add --init flag to initialize a config file ([bf594e0](https://github.com/SKalt/git-cc/commit/bf594e0f279b8ad7089d658a444894782f7b0ec6))
+* relicense to Polyform-Noncommercial OR Polyform-Free-trial OR COMMERCIAL ([40a6f3e](https://github.com/SKalt/git-cc/commit/40a6f3e11dc92288a73df31d697fbf11e4196c36))
+
 ### [0.0.19](https://github.com/SKalt/git-cc/compare/v0.0.18...v0.0.19) (2023-08-01)
 
 
