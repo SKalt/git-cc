@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "Steven Kalt",
-  "license": "Indie Code Catalog Standard Deal >= 4.1",
+  "license": "./LICENSE.md",
   "bugs": {
     "url": "https://github.com/SKalt/git-cc/issues"
   },
