@@ -4,6 +4,7 @@ A git extension to help write [conventional commits][cc-standard]
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/skalt/git-cc)
 ![Go report card](https://goreportcard.com/badge/github.com/skalt/git-cc)
+[Buy a commercial license](https://github.com/sponsors/skalt/sponsorships?tier_id=335824)
 
 ## Usage
 
