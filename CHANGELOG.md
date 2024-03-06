@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.1](https://github.com/SKalt/git-cc/compare/v0.1.0...v0.1.1) (2024-03-06)
+
+
+### Bug Fixes
+
+* **cli:** check that cfg file exists after *maybe* writing it to disk ([8ddbfa7](https://github.com/SKalt/git-cc/commit/8ddbfa7bb343a32cea841d459a6f51504a160e1f))
+* correct misleading-but-unused `license` field in package.json ([8f994cc](https://github.com/SKalt/git-cc/commit/8f994cc9e5d45934930298a4a4bb2ffbd10cda49))
+
 ## [0.1.0](https://github.com/SKalt/git-cc/compare/v0.0.19...v0.1.0) (2023-11-14)
 
 
