@@ -404,7 +404,10 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 // }
 
 func parseCCConfigurationFile(configFile string) (*Cfg, error) {
-	f, _ := os.Stat(configFile)
+	f, err := os.Stat(configFile)
+	if err != nil {
+		return nil, err
+	}
 	if f.IsDir() {
 		return nil, fmt.Errorf("found directory `%s`", configFile)
 	}
