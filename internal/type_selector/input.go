@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/skalt/git-cc/pkg/config"
-	"github.com/skalt/git-cc/pkg/helpbar"
+	"github.com/skalt/git-cc/internal/config"
+	"github.com/skalt/git-cc/internal/helpbar"
+	"github.com/skalt/git-cc/internal/single_select"
 	"github.com/skalt/git-cc/pkg/parser"
-	"github.com/skalt/git-cc/pkg/single_select"
 )
 
 type Model struct {

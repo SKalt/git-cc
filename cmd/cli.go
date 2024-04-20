@@ -11,7 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/skalt/git-cc/pkg/config"
+	"github.com/skalt/git-cc/internal/config"
 	"github.com/skalt/git-cc/pkg/parser"
 )
 

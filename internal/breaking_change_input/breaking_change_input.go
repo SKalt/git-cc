@@ -6,8 +6,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/termenv"
-	"github.com/skalt/git-cc/pkg/config"
-	"github.com/skalt/git-cc/pkg/helpbar"
+	"github.com/skalt/git-cc/internal/config"
+	"github.com/skalt/git-cc/internal/helpbar"
 )
 
 type Model struct {

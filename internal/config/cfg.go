@@ -491,6 +491,7 @@ func FindCCConfigFile(gitRepoRoot string) (string, []string, error) {
 		// "package.json",
 		// "pyproject.toml",
 	}
+	var alternate string
 	dirsToSearch := make([]string, 0, 3)
 
 	cwd, err := filepath.Abs(".")
@@ -524,6 +525,12 @@ func FindCCConfigFile(gitRepoRoot string) (string, []string, error) {
 				return configFile, tried, nil
 			} else {
 				tried = append(tried, configFile)
+			}
+			wrongName := strings.ReplaceAll(candidate, "_", "-")
+			_, wrongNotPresent := os.Stat(path.Join(dir, wrongName))
+			if wrongNotPresent == nil && alternate != "" {
+				// warn about the wrong name
+				fmt.Printf("found %s, but expected %s\n", wrongName, candidate)
 			}
 		}
 	}

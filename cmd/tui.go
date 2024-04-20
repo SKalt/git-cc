@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/skalt/git-cc/pkg/breaking_change_input"
-	"github.com/skalt/git-cc/pkg/config"
-	"github.com/skalt/git-cc/pkg/description_editor"
+	"github.com/skalt/git-cc/internal/breaking_change_input"
+	"github.com/skalt/git-cc/internal/config"
+	"github.com/skalt/git-cc/internal/description_editor"
+	"github.com/skalt/git-cc/internal/scope_selector"
+	"github.com/skalt/git-cc/internal/type_selector"
 	"github.com/skalt/git-cc/pkg/parser"
-	"github.com/skalt/git-cc/pkg/scope_selector"
-	"github.com/skalt/git-cc/pkg/type_selector"
 )
 
 type componentIndex int

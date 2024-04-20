@@ -11,8 +11,8 @@ import (
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/termenv"
-	"github.com/skalt/git-cc/pkg/config"
-	"github.com/skalt/git-cc/pkg/helpbar"
+	"github.com/skalt/git-cc/internal/config"
+	"github.com/skalt/git-cc/internal/helpbar"
 )
 
 const prePrompt = "A short description of the changes:"
