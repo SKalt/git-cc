@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/SKalt/git-cc/compare/v0.1.3...v0.2.0) (2024-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* removes all public code except for pkg/parser
+
+### Bug Fixes
+
+* replace dangling references to pkg/ ([6ae7150](https://github.com/SKalt/git-cc/commit/6ae715071a352592297c57b0b4b60f9b939dc942))
+
+
+* move all not-intended-for-the-public dirs into ./internal ([43cf8e4](https://github.com/SKalt/git-cc/commit/43cf8e488c6cee66f831f671810dc24fecd48a92))
+
 ### [0.1.3](https://github.com/SKalt/git-cc/compare/v0.1.2...v0.1.3) (2024-03-07)
 
 ### [0.1.2](https://github.com/SKalt/git-cc/compare/v0.1.1...v0.1.2) (2024-03-06)
