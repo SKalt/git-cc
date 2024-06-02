@@ -34,18 +34,20 @@ changelog:
 # https://github.com/goreleaser/nfpm; https://goreleaser.com/customization/nfpm/
 nfpms:
   - maintainer: Steven Kalt
-    homepage: &homepage https://github.com/skalt/git-cc
+    homepage: &homepage "https://github.com/skalt/git-cc"
     description: &description "A git extension to help write conventional commits."
     license: &license "Indie Code Catalog Standard Deal >= 4.1"
     # symlinks:
       # /usr/local/bin/git-conventional-commit: /usr/local/bin/git-cc
-    dependencies:
+    dependencies: &dependencies
       - git
     formats:
       # - apk
       - deb
       - rpm
       # it'd be neat to have nix, npm, gem, and pypi packages as well!
+    provides:
+      - git-cc
 brews: # see https://goreleaser.com/customization/homebrew/
   - homepage: *homepage
     license: *license
@@ -60,3 +62,14 @@ brews: # see https://goreleaser.com/customization/homebrew/
       system "#{bin}/git-cc --version"
     dependencies:
       - name: git
+scoops: # see https://goreleaser.com/customization/scoop/
+  - name: git-cc
+    homepage: *homepage
+    description: *description
+    license: *license
+    repository:
+      owner: skalt
+      name: scoop-git-cc
+      branch: main
+      token: "{{ .Env.SCOOP_GITHUB_TOKEN }}"
+    depends: *dependencies
