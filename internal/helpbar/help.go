@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/reflow/ansi"
-	"github.com/skalt/git-cc/pkg/config"
+	"github.com/skalt/git-cc/internal/config"
 )
 
 type Model struct {
