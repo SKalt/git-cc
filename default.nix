@@ -8,13 +8,16 @@
         (import "${fetchTree gomod2nix.locked}/overlay.nix")
       ];
     }
-  )
+  ),
+  version,
+  rev,
 }:
 
 pkgs.buildGoApplication {
   pname = "git-cc";
-  version = "0.0.17";
+  version = version + "+" + rev;
   pwd = ./.;
   src = ./.;
   modules = ./gomod2nix.toml;
+  ldflags = ["-X" "main.version=${version}"];
 }

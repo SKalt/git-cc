@@ -1,5 +1,5 @@
 {
-  description = "A very basic flake";
+  description = "A git extension to help write conventional commits.";
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     gomod2nix = {
@@ -7,7 +7,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.utils.follows = "flake-utils";
     };
-
   };
 
   outputs = { self, flake-utils, nixpkgs, gomod2nix }:
@@ -17,8 +16,11 @@
           inherit system;
           overlays = [ gomod2nix.overlays.default ];
         };
+        version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
+        rev = if (self ? rev) then self.rev else "dirty";
+
       in {
-        packages.default = pkgs.callPackage ./. { };
+        packages.default = pkgs.callPackage ./. { inherit version; inherit rev; };
         devShell = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
             go # 1.20.x
