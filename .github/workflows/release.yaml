@@ -24,11 +24,6 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: "1.21"
-      - name: check release env vars
-        run: |
-          echo "GITHUB_TOKEN: ${GITHUB_TOKEN:0:5}*****"
-          echo "HOMEBREW_TAP_GITHUB_TOKEN: ${HOMEBREW_TAP_GITHUB_TOKEN:0:5}*****"
-          echo "SCOOP_GITHUB_TOKEN: ${SCOOP_GITHUB_TOKEN:0:5}*****"
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -39,4 +34,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          SCOOP_GITHUB_TOKEN: ${{ secrets.SCOOP_GITHUB_TOKEN }}
 
