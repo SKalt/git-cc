@@ -5,7 +5,7 @@
     gomod2nix = {
       url = "github:tweag/gomod2nix";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.utils.follows = "flake-utils";
+      inputs.flake-utils.follows = "flake-utils";
     };
   };
 
@@ -19,7 +19,8 @@
         version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
         rev = if (self ? rev) then self.rev else "dirty";
 
-      in {
+      in
+      {
         packages.default = pkgs.callPackage ./. { inherit version; inherit rev; };
         devShell = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
@@ -27,7 +28,7 @@
           ];
           buildInputs = with pkgs; [
             nixpkgs-fmt
-            rnix-lsp
+            nil
             gopls
             gotools
             libfaketime

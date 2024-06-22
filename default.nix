@@ -8,9 +8,10 @@
         (import "${fetchTree gomod2nix.locked}/overlay.nix")
       ];
     }
-  ),
-  version,
-  rev,
+  )
+, version
+, rev
+,
 }:
 
 pkgs.buildGoApplication {
@@ -19,5 +20,5 @@ pkgs.buildGoApplication {
   pwd = ./.;
   src = ./.;
   modules = ./gomod2nix.toml;
-  ldflags = ["-X" "main.version=${version}"];
+  ldflags = [ "-X" "main.version=${version}" ];
 }

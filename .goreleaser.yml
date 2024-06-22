@@ -1,8 +1,5 @@
-# This is an example goreleaser.yaml file with some sane defaults.
-# Make sure to check the documentation at http://goreleaser.com
-# before:
-#   hooks:
-#     - go mod download
+# GoReleaser config documentation at http://goreleaser.com
+
 builds:
   - env:
       - CGO_ENABLED=0 # don't link against any C headers
