@@ -114,6 +114,8 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 	message, _ := cmd.Flags().GetStringArray("message")
 
 	if len(message) > 0 {
+		//> If multiple `-m` options are given, their values are concatenated as separate paragraphs.
+		//> see https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---messageltmsggt
 		cc, _ = parser.ParseAsMuchOfCCAsPossible(strings.Join(message, "\n\n"))
 	} else {
 		cc, _ = parser.ParseAsMuchOfCCAsPossible((strings.Join(args, " ")))

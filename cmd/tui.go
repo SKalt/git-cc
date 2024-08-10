@@ -51,6 +51,8 @@ type model struct {
 	// the width of the terminal; needed for instantiating components
 	// width  int
 	choice chan string
+	// any body stashed during the initial parse of command-line --message args
+	remainingBody string
 }
 
 // returns whether the minimum requirements for a conventional commit are met.
@@ -73,17 +75,26 @@ func (m model) contextValue() string {
 	result.WriteString(": ")
 	return result.String()
 }
+func (m model) descriptionValue() string {
+	return m.commit[shortDescriptionIndex]
+}
+func (m model) breakingChangeValue() string {
+	return m.commit[breakingChangeIndex]
+}
 
 // Returns a pretty-printed CC string. The model should be `.ready()` before you call `.value()`.
 func (m model) value() string {
 	result := strings.Builder{}
 	result.WriteString(m.contextValue())
-	result.WriteString(m.commit[shortDescriptionIndex])
+	result.WriteString(m.descriptionValue())
 	result.WriteString("\n")
-	breakingChange := m.commit[breakingChangeIndex]
-	if breakingChange != "" {
-		result.WriteString(fmt.Sprintf("\n\nBREAKING CHANGE: %s\n", breakingChange))
+	if m.remainingBody != "" {
+		result.WriteString(m.remainingBody)
+		result.WriteString("\n")
+	}
+	if breakingChange := m.breakingChangeValue(); breakingChange != "" {
 		// TODO: handle multiple breaking change footers(?)
+		result.WriteString(fmt.Sprintf("\n\nBREAKING CHANGE: %s\n", breakingChange))
 	}
 	return result.String()
 }
@@ -134,6 +145,7 @@ func initialModel(choice chan string, cc *parser.CC, cfg *config.Cfg) model {
 		descriptionInput:    descModel,
 		breakingChangeInput: bcModel,
 		viewing:             commitTypeIndex,
+		remainingBody:       cc.Body,
 	}
 	if m.shouldSkip(m.viewing) {
 		m = m.submit().advance()
