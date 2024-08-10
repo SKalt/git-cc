@@ -148,7 +148,7 @@ func TestParsingFullCommit(t *testing.T) {
 				t.FailNow()
 			}
 			if actual.Scope != expected.Scope {
-				fmt.Printf("Scope: expected: %+v actual: %+v\n", expected.Type, actual.Type)
+				fmt.Printf("Scope: expected: %+v actual: %+v\n", expected.Scope, actual.Scope)
 				t.FailNow()
 			}
 			if actual.BreakingChange != expected.BreakingChange {
@@ -278,7 +278,9 @@ func TestParsingPartialCommit(t *testing.T) {
 			}
 		}
 	}
-	t.Run("", test("feat", CC{Type: "feat"}))
-	t.Run("", test("feat:", CC{Type: "feat"}))
-	t.Run("", test("feat: ", CC{Type: "feat"}))
+	t.Run("bare `type`", test("feat", CC{Type: "feat"}))
+	t.Run("valid `type:`", test("feat:", CC{Type: "feat"}))
+	t.Run("valid `type: `", test("feat: ", CC{Type: "feat"}))
+
+	t.Run("invalid `type\nbody`", test("feat\nbody", CC{Type: "feat", Body: "\nbody"}))
 }

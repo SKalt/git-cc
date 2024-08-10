@@ -13,6 +13,7 @@ import (
 // of a pointer wouldn't save space.
 
 type Result struct {
+	// The Results of each off a the child parsers
 	Children  []Result
 	Type      string
 	Value     string
@@ -81,6 +82,7 @@ func Marked(mark string) func(Parser) Parser {
 	}
 }
 
+// Note that `Opt` never returns an error.
 func Opt(parser Parser) Parser {
 	return func(input []rune) (*Result, error) {
 		result, err := parser(input)
@@ -185,6 +187,7 @@ func Some(parsers ...Parser) Parser {
 	}
 }
 
+// Matches the end of the input
 func Empty(input []rune) (*Result, error) {
 	if len(input) == 0 {
 		return nil, nil

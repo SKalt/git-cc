@@ -79,7 +79,7 @@ func (cc *CC) ToString() string {
 var Newline = Marked("Newline")(Any(LiteralRune('\n'), Tag("\r\n")))
 
 var DoubleNewline = Sequence(Newline, Newline)
-var ColonSep = Tag(": ")
+var ColonSep = Regex(": ?") // accept a colon with or without a space after it
 
 // The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in RFC 2119.
 
@@ -90,7 +90,7 @@ var ColonSep = Tag(": ")
 // A description MUST immediately follow the colon and space after the type/scope prefix. The description is a short summary of the code changes, e.g., fix: array parsing issue when multiple spaces were contained in string.
 
 var CommitType Parser = Marked("CommitType")(
-	TakeUntil(Any(BreakingChangeBang, Tag(":"), Tag("("), Empty)),
+	TakeUntil(Any(BreakingChangeBang, Tag(":"), Tag("("), Newline, Empty)),
 )
 
 // A scope MAY be provided after a type. A scope MUST consist of a noun describing a section of the codebase surrounded by parenthesis, e.g., fix(parser):
@@ -98,6 +98,7 @@ var Scope Parser = Marked("Scope")(Delimited(Tag("("), TakeUntil(Tag(")")), Tag(
 var BreakingChangeBang Parser = Marked("BreakingChangeBang")(Tag("!"))
 var ShortDescription Parser = Marked("Description")(TakeUntil(Any(Empty, Newline)))
 
+// The bit before the description, e.g. "feat", "fix(scope)", "refactor!", etc.
 var Context = Sequence(CommitType, Opt(Scope), Opt(BreakingChangeBang))
 
 var BreakingChange = Any(Tag("BREAKING CHANGE"), Tag("BREAKING-CHANGE"))
@@ -114,18 +115,31 @@ var Footer = Marked("Footer")(
 )
 var Footers = Marked("Footers")(Many0(Footer))
 
+var asMuchOfScopeAsPossible = Marked("Scope")(
+	Delimited(
+		Tag("("),
+		TakeUntil(Any(Tag(")"), Empty, Newline, Tag(":"), Tag("!"))),
+		Opt(Tag(")")),
+	),
+)
+
+var asMuchOfCCAsPossible = Some(
+	CommitType, Opt(asMuchOfScopeAsPossible), Opt(BreakingChangeBang), ColonSep, ShortDescription,
+	Opt(Newline), Opt(Newline),
+	Opt(Body),
+	Opt(Footers),
+)
+
 func ParseAsMuchOfCCAsPossible(fullCommit string) (*CC, error) {
-	parsed, err := Some(
-		CommitType, Opt(Scope), Opt(BreakingChangeBang), ColonSep, ShortDescription,
-		Opt(Newline), Opt(Newline),
-		Opt(Body),
-		Opt(Footers),
-	)([]rune(fullCommit))
+	parsed, err := asMuchOfCCAsPossible([]rune(fullCommit))
 	result := &CC{}
 	if parsed != nil && parsed.Children != nil {
 		for _, token := range parsed.Children {
 			result = result.Ingest(token)
 		}
+	}
+	if parsed.Remaining != nil {
+		result.Body += string(parsed.Remaining)
 	}
 	return result, err
 }
