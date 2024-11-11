@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.4](https://github.com/SKalt/git-cc/compare/v0.2.3...v0.2.4) (2024-11-11)
+
+
+### Features
+
+* **parser:** handle incomplete scopes ([c72bb94](https://github.com/SKalt/git-cc/commit/c72bb94da15afdb864121b834567affa4954dfda))
+
+
+### Bug Fixes
+
+* allow empty commits ([132a38a](https://github.com/SKalt/git-cc/commit/132a38a3298f4a54806594810ef13f814c054d2f))
+* **cli:** don't drop body from `-m` args ([b39bbde](https://github.com/SKalt/git-cc/commit/b39bbdeafdc573a542ccd12fd4dd874083877bab))
+
 ### [0.2.3](https://github.com/SKalt/git-cc/compare/v0.2.2...v0.2.3) (2024-06-02)
 
 ### [0.2.2](https://github.com/SKalt/git-cc/compare/v0.2.1...v0.2.2) (2024-06-02)
