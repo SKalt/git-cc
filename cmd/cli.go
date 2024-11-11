@@ -96,6 +96,7 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 
 	commitParams := getGitCommitCmd(cmd)
 	committingAllChanges, _ := cmd.Flags().GetBool("all")
+	allowEmpty, _ := cmd.Flags().GetBool("allow-empty")
 	if !cfg.DryRun && !committingAllChanges {
 		buf := &bytes.Buffer{}
 		process := exec.Command("git", "diff", "--name-only", "--cached")
@@ -104,7 +105,7 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 		if err != nil {
 			log.Fatalf("fatal: not a git repository (or any of the parent directories): .git; %+v", err)
 		}
-		if buf.String() == "" {
+		if buf.String() == "" && !allowEmpty {
 			log.Fatal("No files staged")
 		}
 	}
@@ -294,6 +295,7 @@ func init() {
 		flags.StringArrayP("message", "m", []string{}, "pass a complete conventional commit. If valid, it'll be committed without editing.")
 		flags.Bool("version", false, "print the version")
 		flags.Bool("show-config", false, "print the path to the config file and the relevant config ")
+		flags.Bool("allow-empty", false, "delegated to git-commit")
 		// TODO: accept more of git commit's flags; see https://git-scm.com/docs/git-commit
 		// likely: --cleanup=<mode>
 		// more difficult, and possibly better done manually: --amend, -C <commit>
