@@ -509,12 +509,28 @@ func FindCCConfigFile(gitRepoRoot string) (string, []string, error) {
 			}
 		}
 	}
-	configHome := os.Getenv("XDG_CONFIG_HOME")
-	if configHome == "" {
-		configHome = os.Getenv("HOME")
+	{ // handle $XDG_CONFIG_HOME
+		// > `$XDG_CONFIG_HOME`` defines the base directory relative to which user-specific
+		// > configuration files should be stored. If `$XDG_CONFIG_HOME` is either not set or
+		// > empty, a default equal to `$HOME/.config` should be used.
+		// >
+		// > -- https://specifications.freedesktop.org/basedir-spec/latest/#variables
+		xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgConfigHome == "" {
+			if home := os.Getenv("HOME"); home != "" {
+				xdgConfigHome = path.Join(home, ".config")
+			}
+		}
+		dirsToSearch = append(dirsToSearch, xdgConfigHome)
 	}
-	if configHome != "" {
-		dirsToSearch = append(dirsToSearch, configHome)
+	{ // handle $XDG_CONFIG_DIRS
+		// > `$XDG_CONFIG_DIRS` defines the preference-ordered set of base directories to
+		// > search for configuration files in addition to the `$XDG_CONFIG_HOME` base
+		// > directory. The directories in `$XDG_CONFIG_DIRS` should be separated with a
+		// > colon ':'.
+		// >
+		// > -- https://specifications.freedesktop.org/basedir-spec/latest/#variables
+		dirsToSearch = append(dirsToSearch, strings.Split(os.Getenv("XDG_CONFIG_DIRS"), ":")...)
 	}
 	tried := make([]string, 0, len(candidateFiles)*len(dirsToSearch))
 	for _, dir := range dirsToSearch {
