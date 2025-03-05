@@ -24,7 +24,7 @@
         packages.default = pkgs.callPackage ./. { inherit version; inherit rev; };
         devShell = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
-            go # 1.20.x
+            go # 1.23.x
           ];
           buildInputs = with pkgs; [
             nixpkgs-fmt
