@@ -195,27 +195,20 @@ func redoMessage(cmd *cobra.Command) {
 	flags.Set("message", string(data))
 }
 
+// Note: I'm not using cobra subcommands since they prevent passing arbitrary arguments,
+// and I'd like to be able to start an invocation like `git-cc this is the commit message`
+// without having to think about whether `this` is a subcommand.
+
 var Cmd = &cobra.Command{
 	Use:   "git-cc",
 	Short: "write conventional commits",
-	// not using cobra subcommands since they prevent passing arbitrary arguments,
-	// and I'd like to be able to start an invocation like `git-cc this is the commit message`
-	// without having to think about whether `this` is a subcommand.
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		_, err := config.Init(dryRun)
-		if err != nil {
-			log.Fatalf("unable to initialize config: %s", err)
-		}
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		flags := cmd.Flags()
-		// FIXME: move version, etc into subcommands
 		if version, _ := flags.GetBool("version"); version {
 			versionMode()
 			os.Exit(0)
 		} else if genCompletion, _ := flags.GetBool("generate-shell-completion"); genCompletion {
-			generateShellCompletion(cmd, args) // FIXME: use subcommand instead
+			generateShellCompletion(cmd, args)
 			os.Exit(0)
 		} else if genManPage, _ := flags.GetBool("generate-man-page"); genManPage {
 			generateManPage(cmd, args)

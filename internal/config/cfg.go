@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -567,19 +568,57 @@ func GetGitRepoRoot() (string, error) {
 	}
 }
 
-// find the git directory (usually ./.git)
-func getGitDir() (string, error) {
-	if env := os.Getenv("GIT_COMMON_DIR"); env != "" {
-		return env, nil
+// find the git directory (usually ./.git/)
+func getGitDir() (gitDir string, err error) {
+	var checked []string
+	// see https://git-scm.com/docs/git#Documentation/git.txt-codeGITCOMMONDIRcode
+	if gitDir = os.Getenv("GIT_COMMON_DIR"); gitDir != "" {
+		goto checkDirectory
 	}
-	if env := os.Getenv("GIT_DIR"); env != "" {
-		return env, nil
+	// see https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables#:~:text=the%20current%20repository.-,git_dir,-is%20the%20location
+	// see https://git-scm.com/docs/git#Documentation/git.txt-codeGITDIRcode
+	if gitDir = os.Getenv("GIT_DIR"); gitDir != "" {
+		goto checkDirectory
 	}
-	out, err := stdoutFrom("git", "rev-parse", "--absolute-git-dir")
+	// see https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables#_repository_locations:~:text=your%20shell%20prompt.-,git_work_tree,-is%20the%20location
+	// see https://git-scm.com/docs/git#Documentation/git.txt-codeGITWORKTREEcode
+	if gitDir = os.Getenv("GIT_WORK_TREE"); gitDir != "" {
+		goto checkDirectory
+	}
+	gitDir, err = stdoutFrom("git", "rev-parse", "--absolute-git-dir")
 	if err != nil {
 		return "", err
 	}
-	return out, nil
+	gitDir = strings.TrimSpace(gitDir)
+checkDirectory:
+	{ // follow .git files until we find a directory
+		checked = append(checked, gitDir)
+		if slices.Contains(checked[:len(checked)-1], gitDir) {
+			return "", fmt.Errorf(
+				"circular link in git directory lookup:\n  %s",
+				strings.Join(checked, "\n  "),
+			)
+		}
+
+		var info os.FileInfo
+		if info, err = os.Stat(gitDir); err != nil {
+			return "", err
+		}
+		if info.IsDir() {
+			return // ok! Found a plausible directory
+		}
+		var data []byte
+		data, err = os.ReadFile(gitDir)
+		if err != nil {
+			return
+		}
+		str := strings.TrimRight(string(data), " \t\r\n")
+		if !strings.HasPrefix(str, "gitdir:") {
+			return "", fmt.Errorf("unexpected content in %s: %s", gitDir, str)
+		}
+		gitDir = strings.TrimLeft(strings.TrimPrefix(str, "gitdir:"), " \t\r\n")
+		goto checkDirectory
+	}
 }
 
 func stdoutFrom(args ...string) (string, error) {
