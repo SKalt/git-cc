@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.5](https://github.com/SKalt/git-cc/compare/v0.2.4...v0.2.5) (2025-03-05)
+
+
+### Features
+
+* **cli:** respect `$XDG_CONFIG_DIRS` ([7e7c6a2](https://github.com/SKalt/git-cc/commit/7e7c6a24cba3c500f3b69c70da703105dca3f01e)), closes [#44](https://github.com/SKalt/git-cc/issues/44)
+* handle cases where $GIT_DIR points to a .git _file_ ([3a4c400](https://github.com/SKalt/git-cc/commit/3a4c40099535cfe1495129a2f869ad07b72c9e0a))
+
 ### [0.2.4](https://github.com/SKalt/git-cc/compare/v0.2.3...v0.2.4) (2024-11-11)
 
 

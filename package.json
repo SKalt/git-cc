@@ -1,6 +1,6 @@
 {
   "name": "git-cc",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "a git extension to help write conventional commits",
   "main": "index.js",
   "repository": {
