@@ -33,9 +33,11 @@ func getGitCommitCmd(cmd *cobra.Command) []string {
 	message, _ := cmd.Flags().GetStringArray("message")
 	flags := cmd.Flags()
 	for _, name := range boolFlags {
-		flag, _ := flags.GetBool(name)
-		if flag {
-			commitCmd = append(commitCmd, "--"+name)
+		if flags.Lookup(name).Changed {
+			flag, err := flags.GetBool(name)
+			if err == nil && flag {
+				commitCmd = append(commitCmd, "--"+name)
+			}
 		}
 	}
 	if noEdit || len(message) > 0 {
@@ -299,6 +301,7 @@ func init() {
 		flags.BoolP("all", "a", false, "see the git-commit docs for --all|-a")
 		flags.BoolP("signoff", "s", false, "see the git-commit docs for --signoff|-s")
 		flags.Bool("no-gpg-sign", false, "see the git-commit docs for --no-gpg-sign")
+		// FIXME: gpg-sign
 		flags.Bool("no-post-rewrite", false, "Bypass the post-rewrite hook")
 		flags.Bool("no-edit", false, "Use the selected commit message without launching an editor.")
 		flags.BoolP("no-verify", "n", false, "Bypass git hooks")
@@ -313,6 +316,9 @@ func init() {
 		)
 		flags.Bool("init", false, "initialize a config file if none is present")
 		flags.String("config-format", "yaml", "The format of the config file to generate. One of: toml, yml, yaml")
+
+		Cmd.MarkFlagsMutuallyExclusive("signoff", "no-signoff")
+		Cmd.MarkFlagsMutuallyExclusive("verify", "no-verify")
 	}
 	// { // flags for git-cc init
 	// 	flags := initCmd.Flags()
