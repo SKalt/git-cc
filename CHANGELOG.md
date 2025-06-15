@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.6](https://github.com/SKalt/git-cc/compare/v0.2.5...v0.2.6) (2025-06-15)
+
+
+### Bug Fixes
+
+* only propagate bool flags if set. ([1a7ffb6](https://github.com/SKalt/git-cc/commit/1a7ffb6c529dd9bab5eeb58c08e66222063ece72)), closes [#45](https://github.com/SKalt/git-cc/issues/45)
+
 ### [0.2.5](https://github.com/SKalt/git-cc/compare/v0.2.4...v0.2.5) (2025-03-05)
 
 
