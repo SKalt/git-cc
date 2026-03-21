@@ -103,7 +103,7 @@ func (m model) value() string {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return tea.RequestBackgroundColor
 }
 
 func (m model) currentComponent() InputComponent {
@@ -202,6 +202,9 @@ func (m model) submit() model {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
+	case tea.BackgroundColorMsg:
+		_ = msg.IsDark()
+		panic("todo")
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "ctrl+d":

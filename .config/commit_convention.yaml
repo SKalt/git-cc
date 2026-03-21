@@ -1,4 +1,5 @@
-# not present: commit_types: using the default angular-style commit types 
+# yaml-language-server: $schema=../internal/config/schema.json
+# not present: commit_types: using the default angular-style commit types
 # they would look like this though:
 # commit_types:
 #  - type: description of what the short-form "type" means
@@ -10,3 +11,4 @@ scopes:
   - cli: UI for command-line invocation
   - dist: the release; means of distribution
   - devtools: tools for development
+  - deps: dependencies

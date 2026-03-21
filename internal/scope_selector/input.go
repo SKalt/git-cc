@@ -41,7 +41,7 @@ func match(m *single_select.Model, query string, option string) bool {
 }
 
 // given options from config, add the leading "unscoped" and trailing "new scope" options
-func makeOptions(options *config.OrderedMap) (keys []string, values []string) {
+func makeOptions(options *config.OrderedMap[string, string]) (keys []string, values []string) {
 	keys, values = config.ZippedOrderedKeyValuePairs(options)
 	keys = append(append([]string{""}, keys...), "new scope")
 	values = append(append([]string{"unscoped; affects the entire project"}, values...), "edit a new scope into your configuration file")
@@ -136,7 +136,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			newScope := m.input.CurrentInput()
 			suggested := config.CentralStore.Clone()
 			if suggested.Scopes == nil {
-				suggested.Scopes = &config.OrderedMap{}
+				suggested.Scopes = &config.OrderedMap[string, string]{}
 			}
 			suggested.Scopes.Set(newScope, fmt.Sprintf(newScopeTemplate, newScope))
 			editorCmd := config.EditCfgFileCmd(&suggested)

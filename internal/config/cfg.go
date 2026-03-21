@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"iter"
 	"log"
 	"os"
 	"os/exec"
@@ -20,16 +21,31 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-type OrderedMap = orderedmap.OrderedMap[string, string]
+type OrderedMap[K, V comparable] struct{ *orderedmap.OrderedMap[K, V] }
 
-func iter(om *OrderedMap, callback func(key string, value string)) {
-	current := om.Oldest()
-	for {
-		if current != nil {
-			callback(current.Key, current.Value)
-			current = current.Next()
-		} else {
-			break
+func NewOrderedMap[K, V comparable]() *OrderedMap[K, V] {
+	return &OrderedMap[K, V]{
+		orderedmap.New[K, V](),
+	}
+}
+func NewOrderedMapWithCapcacity[K, V comparable](cap int) *OrderedMap[K, V] {
+	return &OrderedMap[K, V]{
+		orderedmap.New[K, V](orderedmap.WithCapacity[K, V](cap)),
+	}
+}
+
+func (om *OrderedMap[K, V]) iter() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		current := om.Oldest()
+		for {
+			if current == nil {
+				return
+			} else {
+				if !yield(current.Key, current.Value) {
+					return
+				}
+				current = current.Next()
+			}
 		}
 	}
 }
@@ -48,7 +64,7 @@ func renderTomlKv(buf *bytes.Buffer, prefix string, key string, value string) {
 	renderKv(buf, prefix+"  ", key, " = ", value)
 }
 
-func renderYaml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap) {
+func renderYaml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap[string, string]) {
 	buf.WriteString(prefix) // comment &/ indent the line
 	buf.WriteString(header + ":\n")
 	current := om.Oldest()
@@ -62,7 +78,7 @@ func renderYaml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap)
 	}
 }
 
-func renderToml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap) {
+func renderToml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap[string, string]) {
 	buf.WriteString(prefix) // comment &/ indent the line
 	buf.WriteString("[" + header + "]\n")
 	current := om.Oldest()
@@ -76,7 +92,7 @@ func renderToml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap)
 	}
 }
 
-func ZippedOrderedKeyValuePairs(om *OrderedMap) (keys []string, values []string) { // TODO: rename
+func ZippedOrderedKeyValuePairs(om *OrderedMap[string, string]) (keys []string, values []string) { // TODO: rename
 	current := om.Oldest()
 	for {
 		if current != nil {
@@ -103,16 +119,16 @@ func ZippedOrderedKeyValuePairs(om *OrderedMap) (keys []string, values []string)
 var (
 	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
 	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
-	AngularCommitTypes *OrderedMap
+	AngularCommitTypes *OrderedMap[string, string]
 	CentralStore       *Cfg
 )
 
 // instantiate the global more-or-less-constant AngularPresetCommitTypes
-func angularCommitTypes() *OrderedMap {
+func angularCommitTypes() *OrderedMap[string, string] {
 	if AngularCommitTypes != nil {
 		return AngularCommitTypes
 	} else {
-		om := orderedmap.New[string, string]()
+		om := NewOrderedMapWithCapcacity[string, string](11)
 		om.Set("feat", "adds a new feature")
 		om.Set("fix", "fixes a bug")
 		om.Set("docs", "changes only the documentation")
@@ -147,24 +163,24 @@ type Cfg struct {
 	ConfigFile string
 	// a custom, ordered map type is needed since maps fail to preserve the
 	// insertion order of their keys: see https://go.dev/play/p/u0SB-LeqisU
-	CommitTypes *OrderedMap
-	Scopes      *OrderedMap
+	CommitTypes *OrderedMap[string, string]
+	Scopes      *OrderedMap[string, string]
 	// this caps the max len of the `type(scope): description`, not the body
 	// naming inspired by conventional-changelog/commitlint
 	HeaderMaxLength  int
-	EnforceMaxLength bool
+	EnforceMaxLength bool // TODO: derive from whether header_max_length present in the config
 	DryRun           bool
 }
 
 func (c *Cfg) Clone() Cfg {
-	commitTypes := orderedmap.New[string, string]()
-	iter(c.CommitTypes, func(k string, v string) {
+	commitTypes := &OrderedMap[string, string]{}
+	for k, v := range c.CommitTypes.iter() {
 		commitTypes.Set(k, v)
-	})
-	scopes := orderedmap.New[string, string]()
-	iter(c.Scopes, func(k string, v string) {
+	}
+	scopes := &OrderedMap[string, string]{}
+	for k, v := range c.Scopes.iter() {
 		scopes.Set(k, v)
-	})
+	}
 	return Cfg{
 		gitRepoRoot:      c.gitRepoRoot,
 		gitDir:           c.gitDir,
@@ -198,7 +214,7 @@ func ConstructDefaultFile(
 ) string {
 	buf := bytes.Buffer{}
 	buf.WriteString("## omit the commit_types to use the default angular-style commit types\n")
-	var render func(*bytes.Buffer, string, string, *OrderedMap)
+	var render func(*bytes.Buffer, string, string, *OrderedMap[string, string])
 	switch filepath.Ext(cfg.ConfigFile) {
 	case ".yaml", ".yml":
 		render = renderYaml
@@ -210,7 +226,7 @@ func ConstructDefaultFile(
 
 	render(&buf, "# ", "commit_types", cfg.CommitTypes)
 	if cfg.Scopes == nil {
-		cfg.Scopes = orderedmap.New[string, string]()
+		cfg.Scopes = &OrderedMap[string, string]{}
 	}
 	if cfg.Scopes.Len() > 0 {
 		render(&buf, "", "scopes", cfg.Scopes)
@@ -247,7 +263,7 @@ func (cfg *Cfg) ReadCfgFile(mustExist bool) (err error) {
 func Init(dryRun bool) (*Cfg, error) {
 	cfg := Cfg{
 		CommitTypes:     angularCommitTypes(),
-		Scopes:          orderedmap.New[string, string](),
+		Scopes:          &OrderedMap[string, string]{},
 		HeaderMaxLength: 72,
 		//^ s.t. `git log --oneline` should remain within 80 columns w/ a 7-rune
 		// commit hash and one space before the commit message.
@@ -282,15 +298,15 @@ func Init(dryRun bool) (*Cfg, error) {
 }
 
 // turn []string, map[string]string, or []map[string]string into an OrderedMap
-func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
-	insert := func(om *orderedmap.OrderedMap[string, string], key string, value string) (err error) {
+func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
+	insert := func(om *OrderedMap[string, string], key string, value string) (err error) {
 		if _, present := om.Set(key, value); present {
 			err = fmt.Errorf("duplicate key: %s", key)
 		}
 		return
 	}
 
-	handleMap := func(om *orderedmap.OrderedMap[string, string], m map[string]interface{}) (err error) {
+	handleMap := func(om *OrderedMap[string, string], m map[string]interface{}) (err error) {
 		// alphabetize the keys to keep output deterministic
 		kvp := make([][2]string, 0, len(m))
 		for k, v := range m {
@@ -316,7 +332,8 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 	switch intermediate1 := raw.(type) {
 	case []interface{}:
 		// guess the capacity to minimize allocations
-		om = orderedmap.New[string, string](orderedmap.WithCapacity[string, string](len(intermediate1)))
+
+		om = NewOrderedMapWithCapcacity[string, string](len(intermediate1))
 		for _, intermediate2 := range intermediate1 {
 			switch intermediate3 := intermediate2.(type) {
 			case string:
@@ -334,7 +351,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 		}
 		return
 	case map[string]interface{}:
-		om = orderedmap.New[string, string](orderedmap.WithCapacity[string, string](len(intermediate1)))
+		om = NewOrderedMapWithCapcacity[string, string](len(intermediate1))
 		if err = handleMap(om, intermediate1); err != nil {
 			return
 		}
@@ -421,7 +438,7 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 	// 	// in a format that allows comments
 	// 	return parsePackageJson(data)
 	// }
-	var raw map[string]interface{}
+	raw := map[string]any{}
 	ext := filepath.Ext(name)
 	switch ext {
 	case ".yaml", ".yml": // FIXME: order not preserved in {[string]: string} maps

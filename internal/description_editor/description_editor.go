@@ -5,14 +5,16 @@ package description_editor
 import (
 	"fmt"
 	"io"
-	"strings"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/termenv"
 	"github.com/skalt/git-cc/internal/config"
+	"github.com/skalt/git-cc/internal/controls"
 	"github.com/skalt/git-cc/internal/helpbar"
 	"github.com/skalt/git-cc/internal/utils"
 )
@@ -25,6 +27,7 @@ type Model struct {
 	lengthLimit int
 	helpBar     helpbar.Model
 	prefix      string
+	help        help.Model
 }
 
 func (m Model) SetPrefix(prefix string) Model {
@@ -44,6 +47,10 @@ func (m Model) Value() string {
 	return m.input.Value()
 }
 
+var keymap = struct {
+	next, back, cancel key.Binding
+}{next: controls.Keymap.Next, back: controls.Keymap.Back, cancel: controls.Keymap.Cancel}
+
 func NewModel(lengthLimit int, value string, enforced bool) Model {
 	input := textinput.New()
 	input.SetValue(value)
@@ -57,11 +64,7 @@ func NewModel(lengthLimit int, value string, enforced bool) Model {
 	return Model{
 		lengthLimit: lengthLimit,
 		input:       input,
-		helpBar: helpbar.NewModel(
-			config.HelpSubmit,
-			config.HelpBack,
-			config.HelpCancel,
-		),
+		help:        help.New(),
 	}
 }
 
@@ -86,8 +89,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "ctrl+c", "ctrl+d":
+		k := msg.Key()
+		switch {
+		case key.Matches(k, keymap.cancel):
 			return m, tea.Quit
 		default:
 			m.input, cmd = m.input.Update(msg)
@@ -106,30 +110,25 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 }
 
-func must[T any](t T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
 func (m Model) Render(s io.StringWriter) {
-	_ = must(s.WriteString(wordwrap.String(config.Faint(prePrompt), m.width)))
-	_ = must(s.WriteString("\n\n"))
-	_ = must(s.WriteString(m.input.View()))
-	_ = must(s.WriteString("\n\n"))
-	// helpBar := m.helpBar.View()
-	counter := viewCounter(m)
-	m.helpBar.Render(s)
 
-	helpBarLines := strings.Split(m.helpBar.View(), "\n") // HACK
-	last := helpBarLines[len(helpBarLines)-1]
+	_ = utils.Must(s.WriteString(wordwrap.String(config.Faint(prePrompt), m.width)))
+	_ = utils.Must(s.WriteString("\n\n"))
+	val := m.input.View()
+	_ = utils.Must(s.WriteString(val))
+	counter := viewCounter(m)
 	x := " "
-	if ansi.PrintableRuneWidth(last)+ansi.PrintableRuneWidth(counter) >= m.width {
+	if ansi.PrintableRuneWidth(val)+ansi.PrintableRuneWidth(counter) >= m.width {
 		x = ("\n")
 	}
 	_ = utils.Must(s.WriteString(x))
 	_ = utils.Must(s.WriteString(counter))
+	_ = utils.Must(s.WriteString("\n\n"))
+	_ = utils.Must(s.WriteString(fmt.Sprintf("val=%s\n", val)))
+	_ = utils.Must(s.WriteString(m.help.ShortHelpView([]key.Binding{
+		keymap.back, keymap.next, keymap.cancel,
+	})))
+
 }
 
 func (m Model) Init() tea.Cmd {

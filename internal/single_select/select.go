@@ -42,6 +42,8 @@ func NewModel(context string, value string, options []string, hints []string, ma
 	input := textinput.New()
 	input.Placeholder = "type to select"
 	input.Prompt = "   "
+	input.ShowSuggestions = true
+	input.SetSuggestions(options)
 	input.SetValue(value)
 	input.SetCursor(len(value))
 	input.Focus()
