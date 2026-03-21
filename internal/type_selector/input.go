@@ -2,6 +2,7 @@ package type_selector
 
 import (
 	"io"
+	"slices"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/skalt/git-cc/internal/config"
@@ -50,10 +51,5 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 // whether this component should be skipped (during backtracking for error correction?)
 func (m Model) ShouldSkip(currentValue string) bool {
-	for _, opt := range m.input.Options {
-		if opt == currentValue {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(m.input.Options, currentValue)
 }

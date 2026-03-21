@@ -57,10 +57,10 @@ func generateManPage(cmd *cobra.Command, args []string) {
 	process.Stdout = &out
 	err := process.Run()
 	if err != nil {
-		log.Fatalf("unable to deterimine manpath: %+v", err)
+		log.Fatalf("unable to determine manpath: %+v", err)
 	}
-	manpath := strings.Split(out.String(), ":")
-	for _, place := range manpath {
+	manpath := strings.SplitSeq(out.String(), ":")
+	for place := range manpath {
 		err = doc.GenManTree(root, header, path.Join(place, "man1"))
 		if err == nil {
 			break

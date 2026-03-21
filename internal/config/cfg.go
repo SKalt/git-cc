@@ -282,7 +282,7 @@ func Init(dryRun bool) (*Cfg, error) {
 }
 
 // turn []string, map[string]string, or []map[string]string into an OrderedMap
-func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
+func toOrderedMap(raw any) (om *OrderedMap, err error) {
 	insert := func(om *orderedmap.OrderedMap[string, string], key string, value string) (err error) {
 		if _, present := om.Set(key, value); present {
 			err = fmt.Errorf("duplicate key: %s", key)
@@ -290,7 +290,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 		return
 	}
 
-	handleMap := func(om *orderedmap.OrderedMap[string, string], m map[string]interface{}) (err error) {
+	handleMap := func(om *orderedmap.OrderedMap[string, string], m map[string]any) (err error) {
 		// alphabetize the keys to keep output deterministic
 		kvp := make([][2]string, 0, len(m))
 		for k, v := range m {
@@ -314,7 +314,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 	}
 
 	switch intermediate1 := raw.(type) {
-	case []interface{}:
+	case []any:
 		// guess the capacity to minimize allocations
 		om = orderedmap.New[string, string](orderedmap.WithCapacity[string, string](len(intermediate1)))
 		for _, intermediate2 := range intermediate1 {
@@ -323,7 +323,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 				if _, present := om.Set(intermediate3, ""); present {
 					return nil, fmt.Errorf("duplicate value: %s", intermediate3)
 				}
-			case map[string]interface{}:
+			case map[string]any:
 				if err = handleMap(om, intermediate3); err != nil {
 					return nil, err
 				}
@@ -333,13 +333,13 @@ func toOrderedMap(raw interface{}) (om *OrderedMap, err error) {
 			}
 		}
 		return
-	case map[string]interface{}:
+	case map[string]any:
 		om = orderedmap.New[string, string](orderedmap.WithCapacity[string, string](len(intermediate1)))
 		if err = handleMap(om, intermediate1); err != nil {
 			return
 		}
 		return
-	case *orderedmap.OrderedMap[string, interface{}]:
+	case *orderedmap.OrderedMap[string, any]:
 		panic("..") // FIXME
 	default:
 		_ = intermediate1.(map[string]string)
@@ -421,7 +421,7 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 	// 	// in a format that allows comments
 	// 	return parsePackageJson(data)
 	// }
-	var raw map[string]interface{}
+	var raw map[string]any
 	ext := filepath.Ext(name)
 	switch ext {
 	case ".yaml", ".yml": // FIXME: order not preserved in {[string]: string} maps
@@ -712,7 +712,7 @@ func EditCfgFileCmd(cfg *Cfg) *exec.Cmd {
 	editCmd := []string{}
 	// sometimes `$EDITOR` can be a script with spaces, like `code --wait`
 	// TODO: handle quotes in `$EDITOR`?
-	for _, part := range strings.Split(GetEditor(), " ") {
+	for part := range strings.SplitSeq(GetEditor(), " ") {
 		if part != "" {
 			editCmd = append(editCmd, part)
 		}

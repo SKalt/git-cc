@@ -21,7 +21,7 @@ var version, commit, date string
 func printVersion(version, commit, date string) {
 	s := strings.Builder{}
 	s.WriteString("git-cc ")
-	s.WriteString("<unknown>")
+	s.WriteString(version)
 	s.WriteString(" commit ")
 	s.WriteString(commit)
 	s.WriteString(" built ")
@@ -187,7 +187,7 @@ func redoMessage(cmd *cobra.Command) {
 		os.Exit(127)
 	}
 	empty := true
-	for _, line := range strings.Split(
+	for line := range strings.SplitSeq(
 		strings.TrimSpace(string(data)),
 		"\n",
 	) {

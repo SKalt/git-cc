@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"slices"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/atotto/clipboard"
@@ -29,12 +30,7 @@ type editorFinishedMsg struct{ err error }
 // the method for determining if the current input matches an option.
 func match(m *single_select.Model, query string, option string) bool {
 	if option == "new scope" {
-		for _, opt := range m.Options {
-			if query == opt {
-				return false
-			}
-		}
-		return true
+		return !slices.Contains(m.Options, query)
 	} else {
 		return single_select.MatchStart(m, query, option)
 	}

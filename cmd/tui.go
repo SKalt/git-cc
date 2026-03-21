@@ -11,6 +11,7 @@ import (
 	"github.com/skalt/git-cc/internal/description_editor"
 	"github.com/skalt/git-cc/internal/scope_selector"
 	"github.com/skalt/git-cc/internal/type_selector"
+	"github.com/skalt/git-cc/internal/utils"
 	"github.com/skalt/git-cc/pkg/parser"
 )
 
@@ -65,17 +66,17 @@ func (m model) ready() bool {
 
 // returns the context portion of the CC header, e.g `type(scope): `.
 func (m model) contextValue() string {
-	result := strings.Builder{}
-	result.WriteString(m.commit[commitTypeIndex])
+	result := &strings.Builder{}
+	utils.Must(result.WriteString(m.commit[commitTypeIndex]))
 	scope := m.commit[scopeIndex]
 	breakingChange := m.commit[breakingChangeIndex]
 	if scope != "" {
-		result.WriteString(fmt.Sprintf("(%s)", scope))
+		utils.Must(fmt.Fprintf(result, "(%s)", scope))
 	}
 	if breakingChange != "" {
-		result.WriteRune('!')
+		utils.Must(result.WriteRune('!'))
 	}
-	result.WriteString(": ")
+	utils.Must(result.WriteString(": "))
 	return result.String()
 }
 func (m model) descriptionValue() string {
@@ -87,17 +88,17 @@ func (m model) breakingChangeValue() string {
 
 // Returns a pretty-printed CC string. The model should be `.ready()` before you call `.value()`.
 func (m model) value() string {
-	result := strings.Builder{}
-	result.WriteString(m.contextValue())
-	result.WriteString(m.descriptionValue())
-	result.WriteString("\n")
+	result := &strings.Builder{}
+	utils.Must(result.WriteString(m.contextValue()))
+	utils.Must(result.WriteString(m.descriptionValue()))
+	utils.Must(result.WriteString("\n"))
 	if m.remainingBody != "" {
 		result.WriteString(m.remainingBody)
 		result.WriteString("\n")
 	}
 	if breakingChange := m.breakingChangeValue(); breakingChange != "" {
 		// TODO: handle multiple breaking change footers(?)
-		result.WriteString(fmt.Sprintf("\n\nBREAKING CHANGE: %s\n", breakingChange))
+		utils.Must(fmt.Fprintf(result, "\n\nBREAKING CHANGE: %s\n", breakingChange))
 	}
 	return result.String()
 }
@@ -125,12 +126,12 @@ func initialModel(cc *parser.CC, cfg *config.Cfg) model {
 		cfg.HeaderMaxLength, cc.Description, cfg.EnforceMaxLength,
 	)
 	bcModel := breaking_change_input.NewModel()
-	breakingChanges := ""
+	var breakingChanges strings.Builder
 	if cc.BreakingChange {
 		for _, footer := range cc.Footers {
 			result, err := parser.BreakingChange([]rune(footer))
 			if err == nil {
-				breakingChanges += string(result.Remaining) + "\n"
+				breakingChanges.WriteString(string(result.Remaining) + "\n")
 			}
 		}
 	}
@@ -138,7 +139,7 @@ func initialModel(cc *parser.CC, cfg *config.Cfg) model {
 		cc.Type,
 		cc.Scope,
 		cc.Description,
-		breakingChanges,
+		breakingChanges.String(),
 	}
 	m := model{
 		commit:              commit,
