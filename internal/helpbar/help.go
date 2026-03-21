@@ -7,6 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/muesli/reflow/ansi"
 	"github.com/skalt/git-cc/internal/config"
+	"github.com/skalt/git-cc/internal/utils"
 )
 
 type Model struct {
@@ -39,26 +40,20 @@ func (m Model) Render(s io.StringWriter) {
 	}
 	item, items := m.items[0], m.items[1:]
 
-	_ = must(s.WriteString(config.Faint(item)))
+	_ = utils.Must(s.WriteString(config.Faint(item)))
 	currentLen := ansi.PrintableRuneWidth(item)
 
 	sep, sepLen := config.Faint("; "), 2 // 2 == len(sep)
 	for _, item := range items {
 		if currentLen+sepLen+ansi.PrintableRuneWidth(item) <= m.width {
-			_ = must(s.WriteString(sep))
-			_ = must(s.WriteString(config.Faint(item)))
+			_ = utils.Must(s.WriteString(sep))
+			_ = utils.Must(s.WriteString(config.Faint(item)))
 			currentLen += sepLen + len(item)
 		} else {
-			_ = must(s.WriteString("\n"))
-			currentLen = must(s.WriteString(config.Faint(item)))
+			_ = utils.Must(s.WriteString("\n"))
+			currentLen = utils.Must(s.WriteString(config.Faint(item)))
 		}
 	}
-}
-func must[T any](t T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-	return t
 }
 
 func (m Model) View() string {

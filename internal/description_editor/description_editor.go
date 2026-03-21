@@ -106,18 +106,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 }
 
-func must[T any](t T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
 func (m Model) Render(s io.StringWriter) {
-	_ = must(s.WriteString(wordwrap.String(config.Faint(prePrompt), m.width)))
-	_ = must(s.WriteString("\n\n"))
-	_ = must(s.WriteString(m.input.View()))
-	_ = must(s.WriteString("\n\n"))
+	_ = utils.Must(s.WriteString(wordwrap.String(config.Faint(prePrompt), m.width)))
+	_ = utils.Must(s.WriteString("\n\n"))
+	_ = utils.Must(s.WriteString(m.input.View()))
+	_ = utils.Must(s.WriteString("\n\n"))
 	// helpBar := m.helpBar.View()
 	counter := viewCounter(m)
 	m.helpBar.Render(s)
