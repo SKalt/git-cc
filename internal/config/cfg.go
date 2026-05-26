@@ -197,11 +197,15 @@ func (original *Cfg) merge(other *Cfg) {
 	if other.ConfigFile != "" {
 		original.ConfigFile = other.ConfigFile
 	}
-	if other.CommitTypes.Newest() != nil {
-		original.CommitTypes = other.CommitTypes
+	if ct := other.CommitTypes; ct != nil {
+		if ct.Newest() != nil {
+			original.CommitTypes = ct
+		}
 	}
-	if other.Scopes.Newest() != nil {
-		original.Scopes = other.Scopes
+	if s := other.Scopes; s != nil {
+		if s.Newest() != nil {
+			original.Scopes = s
+		}
 	}
 	original.EnforceMaxLength = other.EnforceMaxLength
 	if other.HeaderMaxLength > 0 {
