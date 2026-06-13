@@ -202,9 +202,6 @@ func (m model) submit() model {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	case tea.BackgroundColorMsg:
-		_ = msg.IsDark()
-		panic("todo")
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "ctrl+d":

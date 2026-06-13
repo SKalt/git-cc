@@ -106,16 +106,6 @@ func ZippedOrderedKeyValuePairs(om *OrderedMap[string, string]) (keys []string, 
 	return
 }
 
-// const ExampleCfgFileHeader = `## commit_convention.yml
-// ## omit the commit_types to use the default angular-style commit types`
-// const ExampleCfgFileCommitTypes = `
-// # commit_types:
-// #   - type: description of what the short-form "type" means`
-// const ExampleCfgFileScopes = `
-// # scopes:
-// #   - scope: description of what the short-form "scope" represents`
-// const ExampleCfgFile = ExampleCfgFileHeader + ExampleCfgFileCommitTypes + ExampleCfgFileScopes
-
 var (
 	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
 	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
@@ -194,6 +184,9 @@ func (c *Cfg) Clone() Cfg {
 }
 
 func (original *Cfg) merge(other *Cfg) {
+	if other == nil {
+		return
+	}
 	if other.ConfigFile != "" {
 		original.ConfigFile = other.ConfigFile
 	}
