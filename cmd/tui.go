@@ -50,8 +50,6 @@ type model struct {
 	scopeInput          scope_selector.Model
 	descriptionInput    description_editor.Model
 	breakingChangeInput breaking_change_input.Model
-	// the width of the terminal; needed for instantiating components
-	// width  int
 	// any body stashed during the initial parse of command-line --message args
 	remainingBody string
 }

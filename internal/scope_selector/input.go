@@ -111,13 +111,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			err := clipboard.WriteAll(m.newScope)
 			m.copiedToClipboard = (err == nil)
 		}
-		editorCmd := config.EditCfgFileCmd(
-			config.CentralStore,
-			// config.ExampleCfgFileHeader+config.ExampleCfgFileCommitTypes+"\n"+fmt.Sprintf(
-			// 	emptyScopeTemplate,
-			// 	fmt.Sprintf(newScopeTemplate, m.newScope, m.newScope),
-			// ),
-		)
+		editorCmd := config.EditCfgFileCmd(config.CentralStore)
 		cmd = tea.ExecProcess(editorCmd, func(err error) tea.Msg {
 			return editorFinishedMsg{err}
 		})
@@ -144,7 +138,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return editorFinishedMsg{err}
 			})
 			return m, cmd
-		} // else {} // TODO: warn about parse error
+		} // TODO: warn about parse error
 		values, hints := makeOptions(config.CentralStore.Scopes)
 		m.input.Options = values
 		m.input.Hints = hints

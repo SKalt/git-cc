@@ -269,9 +269,8 @@ func Init(dryRun bool) (*Cfg, error) {
 	}
 	gitDir, err := getGitDir()
 	if err != nil {
-		if dryRun {
+		if !dryRun {
 			// CentralStore.gitDir = "./.git"
-		} else {
 			// fatal since we need to be able to read/write .git/COMMIT_EDITMESSAGE
 			return nil, err
 		}
@@ -356,66 +355,9 @@ func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
 	case *orderedmap.OrderedMap[string, interface{}]:
 		panic("..") // FIXME
 	default:
-		_ = intermediate1.(map[string]string)
-		// for k, v := range i {
-		// 	switch v2 := v {
-		// 	case string:
-		// 		break
-		// 	default:
-		// 		panic(fmt.Errorf("unexpected type '%s' for key %s: '%+v'", reflect.TypeOf(intermediate1).Name(), k, v2))
-		// 	}
-		// }
 		return nil, fmt.Errorf("unexpected format: %+v => %+v", intermediate1, reflect.TypeOf(intermediate1).Name())
 	}
 }
-
-// func parsePackageJson(data []byte) (*Cfg, error) {
-// 	om := orderedmap.New[string, interface{}]() // :/
-// 	if err := om.UnmarshalJSON(data); err != nil {
-// 		return nil, err
-// 	}
-// 	var cfg Cfg
-// 	if raw, present := om.Get("git-cc"); present {
-// 		switch section := raw.(type) {
-// 		case orderedmap.OrderedMap[string, interface{}]:
-// 			// extract configuration from val
-// 			if rawScopes, ok := section.Get("scopes"); ok {
-// 				switch intermediate := rawScopes.(type) {
-// 				case []interface{}:
-// 					om, err:=toOrderedMap(rawScopes)
-// 				}
-// 				cfg.Scopes = rawScopes.(*orderedmap.OrderedMap[string, string])
-// 			}
-// 				if rawTypes, ok := section.Get("commit_types"); ok {
-// 					types, err := toOrderedMap(rawTypes)
-// 					if err != nil {
-// 						return nil, err
-// 					}
-// 					cfg.CommitTypes = types
-// 				}
-// 				if maxLen, ok := raw["header_max_length"]; ok {
-// 					switch max := maxLen.(type) {
-// 					case int:
-// 						cfg.HeaderMaxLength = max
-// 					default:
-// 						return nil, fmt.Errorf("unexpected type of value \"header_max_length\" in %s: `%+v`", configFile, max)
-// 					}
-// 				}
-// 				if enforcedLen, ok := raw["enforce_header_max_length"]; ok {
-// 					switch enforced := enforcedLen.(type) {
-// 					case bool:
-// 						cfg.EnforceMaxLength = enforced
-// 					default:
-// 						return nil, fmt.Errorf("Unexpected type for \"header_max_length_enforced\" in %s: `%+v`", configFile, enforcedLen)
-// 					}
-// 				}
-// 			}
-// 		}
-// 		panic("FIXME")
-// 		return &cfg, nil
-// 	}
-// 	return nil, fmt.Errorf("key \"git-cc\" missing from package.json")
-// }
 
 func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 	f, err := os.Stat(configFile)
@@ -430,11 +372,6 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 		return nil, err
 	}
 	name := f.Name()
-	// if name == "package.json" {
-	// 	// allowed as a special case. Otherwise, prefer writing configuration
-	// 	// in a format that allows comments
-	// 	return parsePackageJson(data)
-	// }
 	raw := map[string]any{}
 	ext := filepath.Ext(name)
 	switch ext {
@@ -446,8 +383,6 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 		if err = toml.Unmarshal(data, &raw); err != nil {
 			return nil, err
 		}
-	// case ".json":
-	// 	return nil, fmt.Errorf("only package.json supported, %s found", configFile)
 	default:
 		// all file extensions should already be known when searching for config
 		// files

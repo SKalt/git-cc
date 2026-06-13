@@ -235,15 +235,6 @@ on typos fixed.`,
 		Footers:        []string{"Refs: 676104e, a215868"},
 		BreakingChange: false,
 	}))
-	// // template:
-	// t.Run(prefix+"", test(,CC{
-	//     Type:        "",
-	//     Scope:       "",
-	//     Description: "",
-	//     Body:        "",
-	//     Footers:     []string{},
-	//     BreakingChange: false,
-	// }))
 }
 
 func TestParsingPartialCommit(t *testing.T) {

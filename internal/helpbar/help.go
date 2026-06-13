@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/skalt/git-cc/internal/controls"
+	"github.com/skalt/git-cc/internal/utils"
 )
 
 type Model struct {
@@ -43,26 +44,7 @@ func (m Model) Render(s io.StringWriter) {
 			controls.Keymap.Cancel,
 		},
 	)
-	s.WriteString(v)
-	// if len(m.items) == 0 {
-	// 	return
-	// }
-	// item, items := m.items[0], m.items[1:]
-
-	// _ = utils.Must(s.WriteString(config.Faint(item)))
-	// currentLen := ansi.PrintableRuneWidth(item)
-
-	// sep, sepLen := config.Faint("; "), 2 // 2 == len(sep)
-	// for _, item := range items {
-	// 	if currentLen+sepLen+ansi.PrintableRuneWidth(item) <= m.width {
-	// 		_ = utils.Must(s.WriteString(sep))
-	// 		_ = utils.Must(s.WriteString(config.Faint(item)))
-	// 		currentLen += sepLen + len(item)
-	// 	} else {
-	// 		_ = utils.Must(s.WriteString("\n"))
-	// 		currentLen = utils.Must(s.WriteString(config.Faint(item)))
-	// 	}
-	// }
+	utils.Must(s.WriteString(v))
 }
 
 func (m Model) View() string {
