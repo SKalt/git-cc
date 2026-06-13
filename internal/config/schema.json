@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "KV": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string",
+          "description": "name: description mapping"
+        }
+      }
+    },
+    "orderedKV": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/KV",
+        "description": "`scope: description` mapping"
+      }
+    },
+    "maybeOrderedKV": {
+      "oneOf": [{ "$ref": "#/$defs/KV" }, { "$ref": "#/$defs/orderedKV" }]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "scopes": {
+      "$ref": "#/$defs/maybeOrderedKV",
+      "description": "An ordered set of `scope: description` mappings"
+    },
+    "commit_types": { "$ref": "#/$defs/maybeOrderedKV" },
+    "header_max_length": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "maximum length of the commit header, including the type and scope prefixes.",
+      "default": 50
+    }
+  },
+  "patternProperties": {
+    "^x-.+": {
+      "anyOf": [
+        { "type": "array" },
+        { "type": "integer" },
+        { "type": "string" },
+        { "type": "object" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": []
+}
