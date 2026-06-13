@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"iter"
 	"log"
@@ -20,6 +21,9 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	yaml "gopkg.in/yaml.v3"
 )
+
+//go:embed schema.json
+var Schema string
 
 type OrderedMap[K, V comparable] struct{ *orderedmap.OrderedMap[K, V] }
 

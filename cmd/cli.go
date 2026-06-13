@@ -19,9 +19,12 @@ import (
 var version, commit, date string
 
 func printVersion(version, commit, date string) {
+	if version == "" {
+		version = "<unknown>"
+	}
 	s := strings.Builder{}
 	s.WriteString("git-cc ")
-	s.WriteString("<unknown>")
+	s.WriteString(version)
 	s.WriteString(" commit ")
 	s.WriteString(commit)
 	s.WriteString(" built ")
@@ -218,6 +221,9 @@ func run(cmd *cobra.Command, args []string) {
 	} else if genManPage, _ := flags.GetBool("generate-man-page"); genManPage {
 		generateManPage(cmd, args)
 		os.Exit(0)
+	} else if shouldPrintSchema, _ := flags.GetBool("print-schema"); shouldPrintSchema {
+		fmt.Println(config.Schema)
+		os.Exit(0)
 	} else {
 		dryRun := utils.Must(cmd.Flags().GetBool("dry-run"))
 		cfg, err := config.Init(dryRun)
@@ -329,6 +335,7 @@ func Cmd(version_, commit_, date_ string) (cmd *cobra.Command) {
 			false,
 			"print a bash/zsh/fish/powershell completion script to stdout",
 		)
+		flags.Bool("print-schema", false, "print the schema of the config file to stdout")
 		flags.Bool("init", false, "initialize a config file if none is present")
 		flags.String("config-format", "yaml", "The format of the config file to generate. One of: toml, yml, yaml")
 
