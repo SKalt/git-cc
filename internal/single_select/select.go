@@ -50,12 +50,22 @@ func NewModel(
 	hints []string,
 	match func(string, string) bool,
 ) Model {
-	if len(options) != len(hints) {
+	switch len(options) {
+	case 0:
+		panic("empty options")
+	case len(hints): // ok
+	default:
 		panic(fmt.Errorf("len(hints) %d != %d len(options)", len(hints), len(options)))
 	}
 
 	items := MakeItems(options, hints)
-	delegate := newSelectDelegate()
+	optWidth := 0
+	for _, opt := range options {
+		if optWidth < len(opt) {
+			optWidth = len(opt)
+		}
+	}
+	delegate := newSelectDelegate(optWidth + 1)
 	l := list.New(items, delegate, 80, 24)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
@@ -131,9 +141,10 @@ func (m *Model) UpdateItems(options, hints []string, match func(string, string) 
 
 // selectDelegate renders list items with hints.
 type selectDelegate struct {
-	height  int
-	spacing int
-	styles  selectDelegateStyles
+	height   int
+	spacing  int
+	optWidth int
+	styles   selectDelegateStyles
 }
 
 type selectDelegateStyles struct {
@@ -143,10 +154,11 @@ type selectDelegateStyles struct {
 	normalDesc    lipgloss.Style
 }
 
-func newSelectDelegate() selectDelegate {
+func newSelectDelegate(optWidth int) selectDelegate {
 	return selectDelegate{
-		height:  2,
-		spacing: 0,
+		height:   2,
+		spacing:  0,
+		optWidth: optWidth,
 		styles: selectDelegateStyles{
 			selectedTitle: lipgloss.NewStyle().Bold(true).Underline(true),
 			selectedDesc:  lipgloss.NewStyle().Underline(true),
@@ -156,18 +168,22 @@ func newSelectDelegate() selectDelegate {
 	}
 }
 
+var _ list.ItemDelegate = selectDelegate{}
+
 func (d selectDelegate) Height() int  { return d.height }
 func (d selectDelegate) Spacing() int { return d.spacing }
 
 func (d selectDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
+	switch t := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.SetWidth(t.Width)
+		m.SetHeight(t.Height)
+	}
 	return nil
 }
 
 func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	i, ok := item.(ListItem)
-	if !ok {
-		return
-	}
+	i := item.(ListItem)
 
 	if m.Width() <= 0 {
 		return
@@ -175,7 +191,7 @@ func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 
 	isSelected := index == m.Index()
 	title := i.Title
-	desc := " " + i.Description
+	desc := strings.Repeat(" ", d.optWidth-len(i.Title)) + i.Description
 
 	leftGutter := 3 // "   " or " > "
 	leftColumn := leftGutter + 1
@@ -184,15 +200,15 @@ func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	if isSelected {
 		gutter := " > "
 		styledTitle := d.styles.selectedTitle.Render(title)
-		_, _ = fmt.Fprint(w, gutter+styledTitle)
+		utils.Must(fmt.Fprint(w, gutter+styledTitle))
 		wrappedDesc := wrapLine(uint(leftColumn), desc, rightColumn, d.styles.selectedDesc)
-		_, _ = fmt.Fprint(w, wrappedDesc)
+		utils.Must(fmt.Fprint(w, wrappedDesc))
 	} else {
 		gutter := "   "
 		styledTitle := d.styles.normalTitle.Render(title)
-		_, _ = fmt.Fprint(w, gutter+styledTitle)
+		utils.Must(fmt.Fprint(w, gutter+styledTitle))
 		wrappedDesc := wrapLine(uint(leftColumn), desc, rightColumn, d.styles.normalDesc)
-		_, _ = fmt.Fprint(w, wrappedDesc)
+		utils.Must(fmt.Fprint(w, wrappedDesc))
 	}
 }
 
@@ -294,7 +310,12 @@ func wrapLine(left uint, text string, right int, style lipgloss.Style) string {
 }
 
 func (m Model) Render(s io.StringWriter) {
-	_ = utils.Must(s.WriteString(m.context + "\n"))
-	_ = utils.Must(s.WriteString(m.textInput.View() + "\n"))
-	_ = utils.Must(s.WriteString(m.list.View()))
+	utils.Must(s.WriteString(m.context))
+	utils.Must(s.WriteString("\n"))
+	utils.Must(s.WriteString(m.textInput.View()))
+	utils.Must(s.WriteString("\n"))
+	utils.Must(s.WriteString(m.list.View()))
+	utils.Must(s.WriteString("\n"))
+	// utils.Must(s.WriteString(fmt.Sprintf("%03d x %03d\n", m.list.Width(), m.list.Height())))
+	// utils.Must(s.WriteString("\n"))
 }

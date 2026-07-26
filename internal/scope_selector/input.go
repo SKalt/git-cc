@@ -51,23 +51,19 @@ func makeOptions(options *config.OrderedMap[string, string]) (keys []string, val
 
 func NewModel(cc *parser.CC, cfg config.Cfg) Model {
 	options, hints := makeOptions(cfg.Scopes)
-	newScope := ""
-	copiedToClipboard := false
 	return Model{
-		single_select.NewModel(
+		input: single_select.NewModel(
 			config.Faint("select a scope:"),
 			cc.Scope,
 			options, hints,
 			makeMatch(options),
 		),
-		helpbar.NewModel(
+		helpBar: helpbar.NewModel(
 			config.HelpSubmit,
 			config.HelpSelect,
 			config.HelpBack,
 			config.HelpCancel,
 		),
-		newScope,
-		copiedToClipboard,
 	}
 }
 
@@ -119,6 +115,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, cmd
 	case tea.WindowSizeMsg:
 		m.helpBar, _ = m.helpBar.Update(msg)
+		m.input, _ = m.input.Update(msg)
 	case editorFinishedMsg:
 		m.newScope = ""
 		m.copiedToClipboard = false
