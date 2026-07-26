@@ -29,20 +29,22 @@ type editorFinishedMsg struct{ err error }
 // makeMatch returns a match function that captures the current options.
 
 // given options from config, add the leading "unscoped" and trailing "new scope" options
-func makeOptions(options *config.OrderedMap[string, string]) (keys []string, values []string) {
-	keys, values = config.ZippedOrderedKeyValuePairs(options)
-	keys = append(append([]string{""}, keys...), "new scope")
-	values = append(append([]string{"unscoped; affects the entire project"}, values...), "edit a new scope into your configuration file")
-	return keys, values
+func makeOptions(options *config.OrderedMap[string, string]) (items []single_select.ListItem) {
+	items = make([]single_select.ListItem, 0, options.Len()+1)
+	items = append(items, single_select.ListItem{"", "unscoped; affects the entire project"})
+	for _, i := range config.Items(options) {
+		items = append(items, single_select.ListItem(i))
+	}
+	return items
 }
 
 func NewModel(cc *parser.CC, cfg config.Cfg) Model {
-	options, hints := makeOptions(cfg.Scopes)
+	options := makeOptions(cfg.Scopes)
 	return Model{
 		input: single_select.NewModel(
 			config.Faint("select a scope:"),
 			cc.Scope,
-			options, hints,
+			options,
 		),
 		helpBar: helpbar.NewModel(
 			config.HelpSubmit,
@@ -123,19 +125,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			})
 			return m, cmd
 		} // TODO: warn about parse error
-		values, hints := makeOptions(config.CentralStore.Scopes)
-		cmd = m.input.UpdateItems(values, hints)
+		values := makeOptions(config.CentralStore.Scopes)
+		cmd = m.input.UpdateItems(values)
 		return m, cmd
 	}
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
 }
 
-func (m Model) ShouldSkip(currentValue string) bool {
-	for _, opt := range m.input.Options() {
-		if currentValue == opt && opt != "" {
-			return true
+func (m Model) ShouldSkip(currentValue string) (shouldSkip bool) {
+	i := 0
+	for opt := range m.input.Options() {
+		i += 1
+		if shouldSkip = currentValue == opt; shouldSkip {
+			break
 		}
 	}
-	return len(m.input.Options()) == 0 // should skip if no scope options are configured
+	return shouldSkip || i == 0 // should skip if no scope options are configured
 }

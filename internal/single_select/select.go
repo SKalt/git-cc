@@ -3,6 +3,7 @@ package single_select
 import (
 	"fmt"
 	"io"
+	"iter"
 	"strings"
 
 	"charm.land/bubbles/v2/list"
@@ -15,53 +16,41 @@ import (
 )
 
 // ListItem implements list.DefaultItem with a title and a description (hint).
-type ListItem struct {
-	Title       string
-	Description string
-}
+type ListItem [2]string
 
-func (i ListItem) FilterValue() string { return i.Title }
-
-// MakeItems creates list items from parallel slices of options and hints.
-func MakeItems(options, hints []string) []list.Item {
-	items := make([]list.Item, len(options))
-	for i := range options {
-		items[i] = ListItem{Title: options[i], Description: hints[i]}
-	}
-	return items
-}
+func (i ListItem) FilterValue() string { return i[0] }
 
 type Model struct {
 	list      list.Model
 	textInput textinput.Model
 	context   string
-	options   []string
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
 }
 
+func toListItems(input []ListItem) []list.Item {
+	items := make([]list.Item, 0, len(input))
+	for _, i := range input {
+		items = append(items, i)
+	}
+	return items
+}
+
 func NewModel(
 	context string,
 	value string,
-	options []string,
-	hints []string,
-	// match func(string, string) bool,
+	options []ListItem,
 ) Model {
-	if len(options) != len(hints) {
-		panic(fmt.Errorf("len(hints) %d != %d len(options)", len(hints), len(options)))
-	}
-
-	items := MakeItems(options, hints)
 	optWidth := 0
 	for _, opt := range options {
-		if optWidth < len(opt) {
-			optWidth = len(opt)
+		if optWidth < len(opt[0]) {
+			optWidth = len(opt[0])
 		}
 	}
 	delegate := newSelectDelegate(optWidth + 1)
-	l := list.New(items, delegate, 80, 24)
+	l := list.New(toListItems(options), delegate, 80, 24)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
 	l.SetShowPagination(false)
@@ -74,7 +63,11 @@ func NewModel(
 	input.Placeholder = "type to select"
 	input.Prompt = "   "
 	input.ShowSuggestions = true
-	input.SetSuggestions(options)
+	suggestions := make([]string, 0, len(options))
+	for _, o := range options {
+		suggestions = append(suggestions, o[0])
+	}
+	input.SetSuggestions(suggestions)
 	input.SetValue(value)
 	input.SetCursor(len(value))
 	input.Focus()
@@ -83,29 +76,26 @@ func NewModel(
 		list:      l,
 		textInput: input,
 		context:   context,
-		options:   options,
 	}
 }
 
-func (m *Model) Focus() tea.Cmd {
-	return m.textInput.Focus()
-}
+func (m *Model) Focus() tea.Cmd { return m.textInput.Focus() }
 
 func (m Model) SetErr(err error) Model {
 	m.textInput.Err = err
 	return m
 }
 
-func (m Model) Focused() bool {
-	return m.textInput.Focused()
-}
-
-func (m Model) Blur() {
-	m.textInput.Blur()
-}
-
-func (m Model) Options() []string {
-	return m.options
+func (m Model) Focused() bool { return m.textInput.Focused() }
+func (m Model) Blur()         { m.textInput.Blur() }
+func (m Model) Options() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, o := range m.list.Items() {
+			if t := o.(ListItem)[0]; t != "" && !yield(t) {
+				return
+			}
+		}
+	}
 }
 
 // Value returns the selected item's title, or "" if nothing is selected.
@@ -114,7 +104,7 @@ func (m Model) Value() string {
 	if item == nil {
 		return ""
 	}
-	return item.(ListItem).Title
+	return item.(ListItem)[0]
 }
 
 func (m Model) CurrentInput() string {
@@ -122,9 +112,8 @@ func (m Model) CurrentInput() string {
 }
 
 // UpdateItems replaces the list items, updates the match function, and re-applies the filter.
-func (m *Model) UpdateItems(options, hints []string) tea.Cmd {
-	m.options = options
-	cmd := m.list.SetItems(MakeItems(options, hints))
+func (m *Model) UpdateItems(options []ListItem) tea.Cmd {
+	cmd := m.list.SetItems(toListItems(options))
 	m.list.SetFilterText(m.textInput.Value())
 	return cmd
 }
@@ -180,8 +169,8 @@ func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	}
 
 	isSelected := index == m.Index()
-	title := i.Title
-	desc := strings.Repeat(" ", d.optWidth-len(i.Title)) + i.Description
+	title := i[0]
+	desc := strings.Repeat(" ", d.optWidth-len(title)) + i[1]
 
 	leftGutter := 3 // "   " or " > "
 	leftColumn := leftGutter + 1

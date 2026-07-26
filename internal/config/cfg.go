@@ -32,7 +32,7 @@ func NewOrderedMap[K, V comparable]() *OrderedMap[K, V] {
 		orderedmap.New[K, V](),
 	}
 }
-func NewOrderedMapWithCapcacity[K, V comparable](cap int) *OrderedMap[K, V] {
+func NewOrderedMapWithCapacity[K, V comparable](cap int) *OrderedMap[K, V] {
 	return &OrderedMap[K, V]{
 		orderedmap.New[K, V](orderedmap.WithCapacity[K, V](cap)),
 	}
@@ -96,20 +96,6 @@ func renderToml(buf *bytes.Buffer, prefix string, header string, om *OrderedMap[
 	}
 }
 
-func ZippedOrderedKeyValuePairs(om *OrderedMap[string, string]) (keys []string, values []string) { // TODO: rename
-	current := om.Oldest()
-	for {
-		if current != nil {
-			keys = append(keys, current.Key)
-			values = append(values, current.Value)
-			current = current.Next()
-		} else {
-			break
-		}
-	}
-	return
-}
-
 var (
 	// see https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#type
 	// see https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/index.js#L23
@@ -122,7 +108,7 @@ func angularCommitTypes() *OrderedMap[string, string] {
 	if AngularCommitTypes != nil {
 		return AngularCommitTypes
 	} else {
-		om := NewOrderedMapWithCapcacity[string, string](11)
+		om := NewOrderedMapWithCapacity[string, string](11)
 		om.Set("feat", "adds a new feature")
 		om.Set("fix", "fixes a bug")
 		om.Set("docs", "changes only the documentation")
@@ -333,7 +319,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
 	case []interface{}:
 		// guess the capacity to minimize allocations
 
-		om = NewOrderedMapWithCapcacity[string, string](len(intermediate1))
+		om = NewOrderedMapWithCapacity[string, string](len(intermediate1))
 		for _, intermediate2 := range intermediate1 {
 			switch intermediate3 := intermediate2.(type) {
 			case string:
@@ -351,7 +337,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
 		}
 		return
 	case map[string]interface{}:
-		om = NewOrderedMapWithCapcacity[string, string](len(intermediate1))
+		om = NewOrderedMapWithCapacity[string, string](len(intermediate1))
 		if err = handleMap(om, intermediate1); err != nil {
 			return
 		}
@@ -664,7 +650,6 @@ func InitDefaultCfgFile(cfg *Cfg, format string) error {
 func EditCfgFileCmd(cfg *Cfg) *exec.Cmd {
 	editCmd := []string{}
 	// sometimes `$EDITOR` can be a script with spaces, like `code --wait`
-	// TODO: handle quotes in `$EDITOR`?
 	for _, part := range strings.Split(GetEditor(), " ") {
 		if part != "" {
 			editCmd = append(editCmd, part)
@@ -676,4 +661,12 @@ func EditCfgFileCmd(cfg *Cfg) *exec.Cmd {
 	editCmd = append(editCmd, cfg.ConfigFile)
 	cmd := exec.Command(editCmd[0], editCmd[1:]...)
 	return cmd
+}
+
+func Items(om *OrderedMap[string, string]) [][2]string {
+	result := make([][2]string, 0, om.Len())
+	for k, v := range om.iter() {
+		result = append(result, [2]string{k, v})
+	}
+	return result
 }
