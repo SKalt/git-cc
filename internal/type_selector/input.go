@@ -23,7 +23,6 @@ func NewModel(cc *parser.CC, cfg *config.Cfg) Model {
 			config.Faint("select a commit type: "),
 			cc.Type,
 			types, hints,
-			single_select.MatchStart,
 		),
 		helpbar.NewModel(
 			config.HelpSubmit, config.HelpSelect, config.HelpCancel,

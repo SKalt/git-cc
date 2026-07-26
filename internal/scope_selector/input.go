@@ -27,19 +27,6 @@ type editorStartMsg struct{}
 type editorFinishedMsg struct{ err error }
 
 // makeMatch returns a match function that captures the current options.
-func makeMatch(options []string) func(string, string) bool {
-	return func(query, option string) bool {
-		if option == "new scope" {
-			for _, opt := range options {
-				if query == opt {
-					return false
-				}
-			}
-			return true
-		}
-		return single_select.MatchStart(query, option)
-	}
-}
 
 // given options from config, add the leading "unscoped" and trailing "new scope" options
 func makeOptions(options *config.OrderedMap[string, string]) (keys []string, values []string) {
@@ -56,7 +43,6 @@ func NewModel(cc *parser.CC, cfg config.Cfg) Model {
 			config.Faint("select a scope:"),
 			cc.Scope,
 			options, hints,
-			makeMatch(options),
 		),
 		helpBar: helpbar.NewModel(
 			config.HelpSubmit,
@@ -138,7 +124,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, cmd
 		} // TODO: warn about parse error
 		values, hints := makeOptions(config.CentralStore.Scopes)
-		cmd = m.input.UpdateItems(values, hints, makeMatch(values))
+		cmd = m.input.UpdateItems(values, hints)
 		return m, cmd
 	}
 	m.input, cmd = m.input.Update(msg)

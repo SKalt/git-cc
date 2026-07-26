@@ -36,7 +36,6 @@ type Model struct {
 	textInput textinput.Model
 	context   string
 	options   []string
-	matchFunc func(string, string) bool
 }
 
 func (m Model) Init() tea.Cmd {
@@ -48,13 +47,9 @@ func NewModel(
 	value string,
 	options []string,
 	hints []string,
-	match func(string, string) bool,
+	// match func(string, string) bool,
 ) Model {
-	switch len(options) {
-	case 0:
-		panic("empty options")
-	case len(hints): // ok
-	default:
+	if len(options) != len(hints) {
 		panic(fmt.Errorf("len(hints) %d != %d len(options)", len(hints), len(options)))
 	}
 
@@ -72,8 +67,6 @@ func NewModel(
 	l.SetShowPagination(false)
 	l.SetShowHelp(false)
 	l.SetShowFilter(false)
-	l.SetFilteringEnabled(false)
-	l.Filter = makeFilterFunc(match)
 	l.InfiniteScrolling = true
 	l.SetFilterText(value)
 
@@ -91,7 +84,6 @@ func NewModel(
 		textInput: input,
 		context:   context,
 		options:   options,
-		matchFunc: match,
 	}
 }
 
@@ -130,10 +122,8 @@ func (m Model) CurrentInput() string {
 }
 
 // UpdateItems replaces the list items, updates the match function, and re-applies the filter.
-func (m *Model) UpdateItems(options, hints []string, match func(string, string) bool) tea.Cmd {
+func (m *Model) UpdateItems(options, hints []string) tea.Cmd {
 	m.options = options
-	m.matchFunc = match
-	m.list.Filter = makeFilterFunc(match)
 	cmd := m.list.SetItems(MakeItems(options, hints))
 	m.list.SetFilterText(m.textInput.Value())
 	return cmd
@@ -210,39 +200,6 @@ func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 		wrappedDesc := wrapLine(uint(leftColumn), desc, rightColumn, d.styles.normalDesc)
 		utils.Must(fmt.Fprint(w, wrappedDesc))
 	}
-}
-
-func makeFilterFunc(match func(string, string) bool) list.FilterFunc {
-	return func(term string, targets []string) []list.Rank {
-		if term == "" {
-			ranks := make([]list.Rank, len(targets))
-			for i := range targets {
-				ranks[i] = list.Rank{Index: i}
-			}
-			return ranks
-		}
-		var ranks []list.Rank
-		for i, target := range targets {
-			if match(term, target) {
-				ranks = append(ranks, list.Rank{
-					Index:          i,
-					MatchedIndexes: sequence(0, len(term)),
-				})
-			}
-		}
-		return ranks
-	}
-}
-
-func sequence(start, end int) []int {
-	if start >= end {
-		return nil
-	}
-	idxs := make([]int, end-start)
-	for i := range idxs {
-		idxs[i] = start + i
-	}
-	return idxs
 }
 
 func MatchStart(query, option string) bool {
