@@ -17,13 +17,13 @@ type Model struct {
 }
 
 func NewModel(cc *parser.CC, cfg *config.Cfg) Model {
-	types, hints := config.ZippedOrderedKeyValuePairs(cfg.CommitTypes)
+	opts := make([]single_select.ListItem, 0, cfg.CommitTypes.Len())
+	for _, o := range config.Items(cfg.CommitTypes) {
+		opts = append(opts, single_select.ListItem(o))
+	}
 	return Model{
 		single_select.NewModel(
-			config.Faint("select a commit type: "),
-			cc.Type,
-			types, hints,
-			single_select.MatchStart,
+			config.Faint("select a commit type: "), cc.Type, opts,
 		),
 		helpbar.NewModel(
 			config.HelpSubmit, config.HelpSelect, config.HelpCancel,
@@ -49,11 +49,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 // whether this component should be skipped (during backtracking for error correction?)
-func (m Model) ShouldSkip(currentValue string) bool {
-	for _, opt := range m.input.Options {
-		if opt == currentValue {
-			return true
+func (m Model) ShouldSkip(currentValue string) (shouldSkip bool) {
+	for opt := range m.input.Options() {
+		if shouldSkip = opt == currentValue; shouldSkip {
+			break
 		}
 	}
-	return false
+	return shouldSkip
 }

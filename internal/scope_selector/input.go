@@ -26,47 +26,32 @@ type Model struct {
 type editorStartMsg struct{}
 type editorFinishedMsg struct{ err error }
 
-// the method for determining if the current input matches an option.
-func match(m *single_select.Model, query string, option string) bool {
-	if option == "new scope" {
-		for _, opt := range m.Options {
-			if query == opt {
-				return false
-			}
-		}
-		return true
-	} else {
-		return single_select.MatchStart(m, query, option)
-	}
-}
+// makeMatch returns a match function that captures the current options.
 
 // given options from config, add the leading "unscoped" and trailing "new scope" options
-func makeOptions(options *config.OrderedMap[string, string]) (keys []string, values []string) {
-	keys, values = config.ZippedOrderedKeyValuePairs(options)
-	keys = append(append([]string{""}, keys...), "new scope")
-	values = append(append([]string{"unscoped; affects the entire project"}, values...), "edit a new scope into your configuration file")
-	return keys, values
+func makeOptions(options *config.OrderedMap[string, string]) (items []single_select.ListItem) {
+	items = make([]single_select.ListItem, 0, options.Len()+1)
+	items = append(items, single_select.ListItem{"", "unscoped; affects the entire project"})
+	for _, i := range config.Items(options) {
+		items = append(items, single_select.ListItem(i))
+	}
+	return items
 }
 
 func NewModel(cc *parser.CC, cfg config.Cfg) Model {
-	options, hints := makeOptions(cfg.Scopes)
-	newScope := ""
-	copiedToClipboard := false
+	options := makeOptions(cfg.Scopes)
 	return Model{
-		single_select.NewModel(
+		input: single_select.NewModel(
 			config.Faint("select a scope:"),
 			cc.Scope,
-			options, hints,
-			match,
+			options,
 		),
-		helpbar.NewModel(
+		helpBar: helpbar.NewModel(
 			config.HelpSubmit,
 			config.HelpSelect,
 			config.HelpBack,
 			config.HelpCancel,
 		),
-		newScope,
-		copiedToClipboard,
 	}
 }
 
@@ -118,6 +103,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, cmd
 	case tea.WindowSizeMsg:
 		m.helpBar, _ = m.helpBar.Update(msg)
+		m.input, _ = m.input.Update(msg)
 	case editorFinishedMsg:
 		m.newScope = ""
 		m.copiedToClipboard = false
@@ -139,24 +125,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			})
 			return m, cmd
 		} // TODO: warn about parse error
-		values, hints := makeOptions(config.CentralStore.Scopes)
-		m.input.Options = values
-		m.input.Hints = hints
-		if m.input.Cursor >= len(m.input.Options) {
-			m.input.Cursor = len(m.input.Options) - 1
-		}
-		m.input, cmd = m.input.Update(msg)
+		values := makeOptions(config.CentralStore.Scopes)
+		cmd = m.input.UpdateItems(values)
 		return m, cmd
 	}
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
 }
 
-func (m Model) ShouldSkip(currentValue string) bool {
-	for _, opt := range m.input.Options {
-		if currentValue == opt && opt != "" {
-			return true
+func (m Model) ShouldSkip(currentValue string) (shouldSkip bool) {
+	i := 0
+	for opt := range m.input.Options() {
+		i += 1
+		if shouldSkip = currentValue == opt; shouldSkip {
+			break
 		}
 	}
-	return len(m.input.Options) == 0 // should skip if no scope options are configured
+	return shouldSkip || i == 0 // should skip if no scope options are configured
 }

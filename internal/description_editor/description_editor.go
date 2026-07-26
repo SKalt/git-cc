@@ -10,7 +10,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/termenv"
 	"github.com/skalt/git-cc/internal/config"
@@ -112,20 +111,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) Render(s io.StringWriter) {
 
-	_ = utils.Must(s.WriteString(wordwrap.String(config.Faint(prePrompt), m.width)))
-	_ = utils.Must(s.WriteString("\n\n"))
+	utils.Must(s.WriteString(wordwrap.String(config.Faint(prePrompt+" "+viewCounter(m)), m.width)))
+	utils.Must(s.WriteString("\n\n"))
 	val := m.input.View()
-	_ = utils.Must(s.WriteString(val))
-	counter := viewCounter(m)
-	x := " "
-	if ansi.PrintableRuneWidth(val)+ansi.PrintableRuneWidth(counter) >= m.width {
-		x = ("\n")
-	}
-	_ = utils.Must(s.WriteString(x))
-	_ = utils.Must(s.WriteString(counter))
-	_ = utils.Must(s.WriteString("\n\n"))
-	_ = utils.Must(s.WriteString(fmt.Sprintf("val=%s\n", val)))
-	_ = utils.Must(s.WriteString(m.help.ShortHelpView([]key.Binding{
+	utils.Must(s.WriteString(val))
+	utils.Must(s.WriteString("\n\n"))
+	utils.Must(s.WriteString(m.help.ShortHelpView([]key.Binding{
 		keymap.back, keymap.next, keymap.cancel,
 	})))
 

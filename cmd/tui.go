@@ -11,6 +11,7 @@ import (
 	"github.com/skalt/git-cc/internal/description_editor"
 	"github.com/skalt/git-cc/internal/scope_selector"
 	"github.com/skalt/git-cc/internal/type_selector"
+	"github.com/skalt/git-cc/internal/utils"
 	"github.com/skalt/git-cc/pkg/parser"
 )
 
@@ -68,7 +69,7 @@ func (m model) contextValue() string {
 	scope := m.commit[scopeIndex]
 	breakingChange := m.commit[breakingChangeIndex]
 	if scope != "" {
-		result.WriteString(fmt.Sprintf("(%s)", scope))
+		utils.Must(fmt.Fprintf(&result, "(%s)", scope))
 	}
 	if breakingChange != "" {
 		result.WriteRune('!')
@@ -95,7 +96,7 @@ func (m model) value() string {
 	}
 	if breakingChange := m.breakingChangeValue(); breakingChange != "" {
 		// TODO: handle multiple breaking change footers(?)
-		result.WriteString(fmt.Sprintf("\n\nBREAKING CHANGE: %s\n", breakingChange))
+		utils.Must(fmt.Fprintf(&result, "\n\nBREAKING CHANGE: %s\n", breakingChange))
 	}
 	return result.String()
 }

@@ -36,8 +36,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) Render(s io.StringWriter) {
-	var h help.Model = help.New()
-	v := h.ShortHelpView(
+	v := help.New().ShortHelpView(
 		[]key.Binding{
 			controls.Keymap.Back,
 			controls.Keymap.Next,
