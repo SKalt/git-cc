@@ -127,10 +127,7 @@ type selectDelegate struct {
 }
 
 type selectDelegateStyles struct {
-	selectedTitle lipgloss.Style
-	selectedDesc  lipgloss.Style
-	normalTitle   lipgloss.Style
-	normalDesc    lipgloss.Style
+	selectedTitle, selectedDesc, normalTitle, normalDesc lipgloss.Style
 }
 
 func newSelectDelegate(optWidth int) selectDelegate {
@@ -162,15 +159,15 @@ func (d selectDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 }
 
 func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	i := item.(ListItem)
 
 	if m.Width() <= 0 {
 		return
 	}
 
 	isSelected := index == m.Index()
-	title := i[0]
-	desc := strings.Repeat(" ", d.optWidth-len(title)) + i[1]
+	i := item.(ListItem)
+	title, desc := i[0], i[1]
+	desc = strings.Repeat(" ", d.optWidth-len(title)) + desc
 
 	leftGutter := 3 // "   " or " > "
 	leftColumn := leftGutter + 1
@@ -262,6 +259,4 @@ func (m Model) Render(s io.StringWriter) {
 	utils.Must(s.WriteString("\n"))
 	utils.Must(s.WriteString(m.list.View()))
 	utils.Must(s.WriteString("\n"))
-	// utils.Must(s.WriteString(fmt.Sprintf("%03d x %03d\n", m.list.Width(), m.list.Height())))
-	// utils.Must(s.WriteString("\n"))
 }
