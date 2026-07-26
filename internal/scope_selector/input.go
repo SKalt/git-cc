@@ -26,17 +26,18 @@ type Model struct {
 type editorStartMsg struct{}
 type editorFinishedMsg struct{ err error }
 
-// the method for determining if the current input matches an option.
-func match(m *single_select.Model, query string, option string) bool {
-	if option == "new scope" {
-		for _, opt := range m.Options {
-			if query == opt {
-				return false
+// makeMatch returns a match function that captures the current options.
+func makeMatch(options []string) func(string, string) bool {
+	return func(query, option string) bool {
+		if option == "new scope" {
+			for _, opt := range options {
+				if query == opt {
+					return false
+				}
 			}
+			return true
 		}
-		return true
-	} else {
-		return single_select.MatchStart(m, query, option)
+		return single_select.MatchStart(query, option)
 	}
 }
 
@@ -57,7 +58,7 @@ func NewModel(cc *parser.CC, cfg config.Cfg) Model {
 			config.Faint("select a scope:"),
 			cc.Scope,
 			options, hints,
-			match,
+			makeMatch(options),
 		),
 		helpbar.NewModel(
 			config.HelpSubmit,
@@ -140,12 +141,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, cmd
 		} // TODO: warn about parse error
 		values, hints := makeOptions(config.CentralStore.Scopes)
-		m.input.Options = values
-		m.input.Hints = hints
-		if m.input.Cursor >= len(m.input.Options) {
-			m.input.Cursor = len(m.input.Options) - 1
-		}
-		m.input, cmd = m.input.Update(msg)
+		cmd = m.input.UpdateItems(values, hints, makeMatch(values))
 		return m, cmd
 	}
 	m.input, cmd = m.input.Update(msg)
@@ -153,10 +149,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) ShouldSkip(currentValue string) bool {
-	for _, opt := range m.input.Options {
+	for _, opt := range m.input.Options() {
 		if currentValue == opt && opt != "" {
 			return true
 		}
 	}
-	return len(m.input.Options) == 0 // should skip if no scope options are configured
+	return len(m.input.Options()) == 0 // should skip if no scope options are configured
 }

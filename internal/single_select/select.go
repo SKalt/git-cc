@@ -5,40 +5,68 @@ import (
 	"io"
 	"strings"
 
+	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/muesli/reflow/indent"
-	"github.com/muesli/reflow/padding"
 	"github.com/muesli/reflow/wordwrap"
-	term "github.com/muesli/termenv"
 	"github.com/skalt/git-cc/internal/utils"
 )
 
+// ListItem implements list.DefaultItem with a title and a description (hint).
+type ListItem struct {
+	Title       string
+	Description string
+}
+
+func (i ListItem) FilterValue() string { return i.Title }
+
+// MakeItems creates list items from parallel slices of options and hints.
+func MakeItems(options, hints []string) []list.Item {
+	items := make([]list.Item, len(options))
+	for i := range options {
+		items[i] = ListItem{Title: options[i], Description: hints[i]}
+	}
+	return items
+}
+
 type Model struct {
-	Options  []string
-	Hints    []string
-	match    func(*Model, string, string) bool
-	filtered [][2]string
-	matched  [][2]string
-	// the offset (0-indexed) of the selection within the options
-	Cursor          int
-	maxOptionLength int
-	context         string
-	// in runes
-	Width int
-	// in lines
-	Height    int
+	list      list.Model
 	textInput textinput.Model
+	context   string
+	options   []string
+	matchFunc func(string, string) bool
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func NewModel(context string, value string, options []string, hints []string, match func(*Model, string, string) bool) Model {
+func NewModel(
+	context string,
+	value string,
+	options []string,
+	hints []string,
+	match func(string, string) bool,
+) Model {
 	if len(options) != len(hints) {
 		panic(fmt.Errorf("len(hints) %d != %d len(options)", len(hints), len(options)))
 	}
+
+	items := MakeItems(options, hints)
+	delegate := newSelectDelegate()
+	l := list.New(items, delegate, 80, 24)
+	l.SetShowTitle(false)
+	l.SetShowStatusBar(false)
+	l.SetShowPagination(false)
+	l.SetShowHelp(false)
+	l.SetShowFilter(false)
+	l.SetFilteringEnabled(false)
+	l.Filter = makeFilterFunc(match)
+	l.InfiniteScrolling = true
+	l.SetFilterText(value)
+
 	input := textinput.New()
 	input.Placeholder = "type to select"
 	input.Prompt = "   "
@@ -48,26 +76,19 @@ func NewModel(context string, value string, options []string, hints []string, ma
 	input.SetCursor(len(value))
 	input.Focus()
 
-	result := Model{
-		context:   context,
-		Options:   options,
-		Hints:     hints,
+	return Model{
+		list:      l,
 		textInput: input,
-		match:     match,
+		context:   context,
+		options:   options,
+		matchFunc: match,
 	}
-	result.matched, result.filtered = result.filter(value)
-	return result
 }
 
 func (m *Model) Focus() tea.Cmd {
 	return m.textInput.Focus()
 }
 
-func (m *Model) Match(query string, option string) bool {
-	return m.match(m, query, option)
-}
-
-// register an error with the textInput sub-component
 func (m Model) SetErr(err error) Model {
 	m.textInput.Err = err
 	return m
@@ -81,126 +102,193 @@ func (m Model) Blur() {
 	m.textInput.Blur()
 }
 
-func (m Model) maxOptLen() int {
-	if m.maxOptionLength > 0 {
-		return m.maxOptionLength
-	}
-	max := 0
-	for _, opt := range m.Options {
-		if len(opt) > max {
-			max = len(opt)
-		}
-	}
-	m.maxOptionLength = max
-	return m.maxOptionLength
+func (m Model) Options() []string {
+	return m.options
 }
 
-func MatchStart(m *Model, query string, option string) bool {
-	return len(query) <= len(option) && option[0:len(query)] == query
-}
-
-func (m Model) filter(startingWith string) ([][2]string, [][2]string) {
-	matched, filtered := [][2]string{}, [][2]string{}
-	for i, opt := range m.Options {
-		hint := m.Hints[i]
-		if m.Match(startingWith, opt) {
-			matched = append(matched, [2]string{opt, hint})
-		} else {
-			filtered = append(filtered, [2]string{opt, hint})
-		}
-	}
-	return matched, filtered
-}
-
-// access the matched, selected value. If no value is matched, this returns "".
+// Value returns the selected item's title, or "" if nothing is selected.
 func (m Model) Value() string {
-	if len(m.matched) > 0 {
-		return m.matched[m.Cursor][0]
-	} else {
+	item := m.list.SelectedItem()
+	if item == nil {
 		return ""
 	}
+	return item.(ListItem).Title
 }
 
 func (m Model) CurrentInput() string {
 	return m.textInput.Value()
 }
 
-func update(msg tea.Msg, model Model) (Model, tea.Cmd) {
+// UpdateItems replaces the list items, updates the match function, and re-applies the filter.
+func (m *Model) UpdateItems(options, hints []string, match func(string, string) bool) tea.Cmd {
+	m.options = options
+	m.matchFunc = match
+	m.list.Filter = makeFilterFunc(match)
+	cmd := m.list.SetItems(MakeItems(options, hints))
+	m.list.SetFilterText(m.textInput.Value())
+	return cmd
+}
+
+// selectDelegate renders list items with hints.
+type selectDelegate struct {
+	height  int
+	spacing int
+	styles  selectDelegateStyles
+}
+
+type selectDelegateStyles struct {
+	selectedTitle lipgloss.Style
+	selectedDesc  lipgloss.Style
+	normalTitle   lipgloss.Style
+	normalDesc    lipgloss.Style
+}
+
+func newSelectDelegate() selectDelegate {
+	return selectDelegate{
+		height:  2,
+		spacing: 0,
+		styles: selectDelegateStyles{
+			selectedTitle: lipgloss.NewStyle().Bold(true).Underline(true),
+			selectedDesc:  lipgloss.NewStyle().Underline(true),
+			normalTitle:   lipgloss.NewStyle().Faint(true),
+			normalDesc:    lipgloss.NewStyle().Faint(true),
+		},
+	}
+}
+
+func (d selectDelegate) Height() int  { return d.height }
+func (d selectDelegate) Spacing() int { return d.spacing }
+
+func (d selectDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
+	return nil
+}
+
+func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	i, ok := item.(ListItem)
+	if !ok {
+		return
+	}
+
+	if m.Width() <= 0 {
+		return
+	}
+
+	isSelected := index == m.Index()
+	title := i.Title
+	desc := " " + i.Description
+
+	leftGutter := 3 // "   " or " > "
+	leftColumn := leftGutter + 1
+	rightColumn := m.Width() - leftColumn
+
+	if isSelected {
+		gutter := " > "
+		styledTitle := d.styles.selectedTitle.Render(title)
+		_, _ = fmt.Fprint(w, gutter+styledTitle)
+		wrappedDesc := wrapLine(uint(leftColumn), desc, rightColumn, d.styles.selectedDesc)
+		_, _ = fmt.Fprint(w, wrappedDesc)
+	} else {
+		gutter := "   "
+		styledTitle := d.styles.normalTitle.Render(title)
+		_, _ = fmt.Fprint(w, gutter+styledTitle)
+		wrappedDesc := wrapLine(uint(leftColumn), desc, rightColumn, d.styles.normalDesc)
+		_, _ = fmt.Fprint(w, wrappedDesc)
+	}
+}
+
+func makeFilterFunc(match func(string, string) bool) list.FilterFunc {
+	return func(term string, targets []string) []list.Rank {
+		if term == "" {
+			ranks := make([]list.Rank, len(targets))
+			for i := range targets {
+				ranks[i] = list.Rank{Index: i}
+			}
+			return ranks
+		}
+		var ranks []list.Rank
+		for i, target := range targets {
+			if match(term, target) {
+				ranks = append(ranks, list.Rank{
+					Index:          i,
+					MatchedIndexes: sequence(0, len(term)),
+				})
+			}
+		}
+		return ranks
+	}
+}
+
+func sequence(start, end int) []int {
+	if start >= end {
+		return nil
+	}
+	idxs := make([]int, end-start)
+	for i := range idxs {
+		idxs[i] = start + i
+	}
+	return idxs
+}
+
+func MatchStart(query, option string) bool {
+	return len(query) <= len(option) && option[:len(query)] == query
+}
+
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c":
-			return model, tea.Quit
+			return m, tea.Quit
 		case "up", "ctrl+p":
-			if model.Cursor > 0 {
-				model.Cursor -= 1
-			} else {
-				model.Cursor = len(model.matched) - 1
-			}
-			return model, cmd
+			m.list.CursorUp()
+			return m, nil
 		case "down", "ctrl+n":
-			if model.Cursor < len(model.matched)-1 {
-				model.Cursor += 1
-			} else {
-				model.Cursor = 0
-			}
-			return model, cmd
+			m.list.CursorDown()
+			return m, nil
 		default:
-			model.textInput, cmd = model.textInput.Update(msg)
-			model.matched, model.filtered = model.filter(model.textInput.Value())
-			model.Cursor = 0
-			return model, cmd
+			oldValue := m.textInput.Value()
+			m.textInput, cmd = m.textInput.Update(msg)
+			if m.textInput.Value() != oldValue {
+				m.list.SetFilterText(m.textInput.Value())
+			}
+			return m, cmd
 		}
 	case tea.MouseWheelMsg:
 		switch msg.Button {
 		case tea.MouseWheelUp:
-			if model.Cursor > 0 {
-				model.Cursor -= 1
-			} else {
-				model.Cursor = len(model.matched) - 1
-			}
-			return model, cmd
+			m.list.CursorUp()
+			return m, nil
 		case tea.MouseWheelDown:
-			if model.Cursor < len(model.matched)-1 {
-				model.Cursor += 1
-			} else {
-				model.Cursor = 0
-			}
-			return model, cmd
+			m.list.CursorDown()
+			return m, nil
 		default:
-			model.textInput, cmd = model.textInput.Update(msg)
-			model.matched, model.filtered = model.filter(model.textInput.Value())
-			model.Cursor = 0
-			return model, cmd
+			oldValue := m.textInput.Value()
+			m.textInput, cmd = m.textInput.Update(msg)
+			if m.textInput.Value() != oldValue {
+				m.list.SetFilterText(m.textInput.Value())
+			}
+			return m, cmd
 		}
 	case tea.WindowSizeMsg:
-		model.Height = msg.Height
-		model.Width = msg.Width
-		model.textInput, cmd = model.textInput.Update(msg)
-		return model, cmd
+		m.list.SetSize(msg.Width, msg.Height)
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
 	default:
-		model.textInput, cmd = model.textInput.Update(msg)
-		model.matched, model.filtered = model.filter(model.textInput.Value())
-		return model, cmd
+		oldValue := m.textInput.Value()
+		m.textInput, cmd = m.textInput.Update(msg)
+		if m.textInput.Value() != oldValue {
+			m.list.SetFilterText(m.textInput.Value())
+		}
+		return m, cmd
 	}
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	return update(msg, m)
-}
-
-// wrap `text` between column `left` and `right`, applying `style`
-func wrapLine(
-	left uint,
-	text string,
-	right int,
-	style func(string) term.Style,
-) string {
+func wrapLine(left uint, text string, right int, style lipgloss.Style) string {
 	lines := strings.SplitN(wordwrap.String(text, right), "\n", 2)
-	result := style(lines[0]).String()
+	result := style.Render(lines[0])
 	if len(lines) > 1 {
-		result += "\n" + indent.String(style(lines[1]).String(), left)
+		result += "\n" + indent.String(style.Render(lines[1]), left)
 	}
 	return result
 }
@@ -208,42 +296,5 @@ func wrapLine(
 func (m Model) Render(s io.StringWriter) {
 	_ = utils.Must(s.WriteString(m.context + "\n"))
 	_ = utils.Must(s.WriteString(m.textInput.View() + "\n"))
-	leftGutter := 3 // "   "
-	maxOptLen := m.maxOptLen()
-	leftColumn := (leftGutter + maxOptLen) + 1 // for the space
-	rightColumn := m.Width - leftColumn
-	pad := func(opt string, max int) string {
-		s := padding.String(opt, uint(maxOptLen))
-		if s == "" {
-			s = strings.Repeat(" ", max)
-		}
-		return s
-	}
-	for i, match := range m.matched {
-		opt, hint := pad(match[0], maxOptLen), " "+match[1]
-		if m.Cursor == i {
-			style := func(str string) term.Style {
-				return term.String(str).Underline()
-			}
-			_ = utils.Must(s.WriteString(" > " + style(opt).Bold().String()))
-			_ = utils.Must(s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style)))
-		} else {
-			style := func(str string) term.Style {
-				return term.String(str).Faint()
-			}
-			_ = utils.Must(s.WriteString("   " + opt))
-			_ = utils.Must(s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style)))
-		}
-		_ = utils.Must(s.WriteString("\n"))
-	}
-	// s.WriteString("\n")
-	style := func(str string) term.Style {
-		return term.String(str).Faint()
-	}
-	for _, rejected := range m.filtered {
-		opt, hint := style(pad(rejected[0], maxOptLen)).String(), rejected[1]
-		_ = utils.Must(s.WriteString("   " + opt + " "))
-		_ = utils.Must(s.WriteString(wrapLine(uint(leftColumn), hint, rightColumn, style)))
-		_ = utils.Must(s.WriteString("\n"))
-	}
+	_ = utils.Must(s.WriteString(m.list.View()))
 }

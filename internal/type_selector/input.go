@@ -50,7 +50,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 // whether this component should be skipped (during backtracking for error correction?)
 func (m Model) ShouldSkip(currentValue string) bool {
-	for _, opt := range m.input.Options {
+	for _, opt := range m.input.Options() {
 		if opt == currentValue {
 			return true
 		}
