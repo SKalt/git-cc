@@ -1,0 +1,18 @@
+[env]
+GOBIN = "{{config_root}}/bin"
+_.path = ["{{config_root}}/bin"]
+
+[tools]
+go = "latest"
+"go:github.com/nametake/golangci-lint-langserver" = "latest"
+golangci-lint = "latest"
+
+[[hooks.enter]]
+# https://mise.jdx.dev/hooks.html#shell-hooks
+shell = "bash"
+script = '. "${{config_root}}/load.sh"'
+
+[[hooks.enter]]
+# https://mise.jdx.dev/hooks.html#shell-hooks
+shell = "zsh"
+script = 'COMPLETIONS_DIR="{{config_root}}/scripts/completions"; . "$COMPLETIONS_DIR/load.sh"'
