@@ -3,7 +3,25 @@ package parser
 import (
 	"fmt"
 	"testing"
+
+	"github.com/skalt/git-cc/internal/utils"
 )
+
+func expectEq[T comparable](t testing.TB, expected, actual T, msg string) {
+	t.Helper()
+	if expected != actual {
+		t.Fatalf(msg+
+			"\nexpected: `%+v`"+
+			"\nactual  : `%+v`", expected, actual)
+	}
+}
+func orZero[T comparable](a *T) (zero T) {
+	return utils.Coalesce(a, zero)
+}
+func expectPtrEq[T comparable](t testing.TB, expected, actual *T, msg string) {
+	t.Helper()
+	expectEq(t, orZero(expected), orZero(actual), "*"+msg)
+}
 
 // these examples are copied from https://www.conventionalcommits.org/en/v1.0.0/, which is licensed under
 // CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/).  I've added escape sequences to record then as go multiline string literals.
@@ -143,31 +161,13 @@ func TestParsingFullCommit(t *testing.T) {
 				fmt.Printf("%+v", err)
 				t.FailNow()
 			}
-			if actual.Type != expected.Type {
-				fmt.Printf("Type: expected: %+v actual: %+v\n", expected.Type, actual.Type)
-				t.FailNow()
-			}
-			if actual.Scope != expected.Scope {
-				fmt.Printf("Scope: expected: %+v actual: %+v\n", expected.Scope, actual.Scope)
-				t.FailNow()
-			}
-			if actual.BreakingChange != expected.BreakingChange {
-				fmt.Printf("BreakingChange: expected: %+v actual: %+v\n", expected.BreakingChange, actual.BreakingChange)
-				t.FailNow()
-			}
-			if actual.Body != expected.Body {
-				fmt.Printf("Body: expected: `%+v`\nactual: `%+v`\n", expected.Body, actual.Body)
-				t.FailNow()
-			}
-			if len(actual.Footers) != len(expected.Footers) {
-				fmt.Printf("Footers: expected: %+v actual: %+v\n", expected.Footers, actual.Footers)
-				t.FailNow()
-			}
+			expectEq(t, expected.Type, actual.Type, "type")
+			expectPtrEq(t, expected.Scope, actual.Scope, "scope")
+			expectEq(t, expected.BreakingChange, actual.BreakingChange, "breaking change")
+			expectPtrEq(t, expected.Body, actual.Body, "body")
+			expectEq(t, len(actual.Footers), len(expected.Footers), "len(footers)")
 			for i := range actual.Footers {
-				if actual.Footers[i] != expected.Footers[i] {
-					fmt.Printf("expected: '%+v' actual: '%+v'\n", expected.Footers[i], actual.Footers[i])
-					t.FailNow()
-				}
+				expectEq(t, expected.Footers[i], actual.Footers[i], fmt.Sprintf("footers[%d]", i))
 			}
 		}
 	}
@@ -242,31 +242,14 @@ func TestParsingPartialCommit(t *testing.T) {
 	test := func(partialCommit string, expected CC) func(*testing.T) {
 		return func(t *testing.T) {
 			actual, _ := ParseAsMuchOfCCAsPossible(partialCommit)
-			if actual.Type != expected.Type {
-				fmt.Printf("Type: expected: %+v actual: %+v\n", expected.Type, actual.Type)
-				t.FailNow()
-			}
-			if actual.Scope != expected.Scope {
-				fmt.Printf("Scope: expected: %+v actual: %+v\n", expected.Type, actual.Type)
-				t.FailNow()
-			}
-			if actual.BreakingChange != expected.BreakingChange {
-				fmt.Printf("BreakingChange: expected: %+v actual: %+v\n", expected.BreakingChange, actual.BreakingChange)
-				t.FailNow()
-			}
-			if actual.Body != expected.Body {
-				fmt.Printf("Body: expected: `%+v`\nactual: `%+v`\n", expected.Body, actual.Body)
-				t.FailNow()
-			}
-			if len(actual.Footers) != len(expected.Footers) {
-				fmt.Printf("Footers: expected: %+v actual: %+v\n", expected.Footers, actual.Footers)
-				t.FailNow()
-			}
+			expectEq(t, expected.Type, actual.Type, "type")
+			expectEq(t, expected.Type, actual.Type, "type")
+			expectPtrEq(t, expected.Scope, actual.Scope, "scope")
+			expectEq(t, expected.BreakingChange, actual.BreakingChange, "breaking change")
+			expectPtrEq(t, expected.Body, actual.Body, "body")
+			expectEq(t, len(actual.Footers), len(expected.Footers), "len(footers)")
 			for i := range actual.Footers {
-				if actual.Footers[i] != expected.Footers[i] {
-					fmt.Printf("expected: '%+v' actual: '%+v'\n", expected.Footers[i], actual.Footers[i])
-					t.FailNow()
-				}
+				expectEq(t, expected.Footers[i], actual.Footers[i], fmt.Sprintf("footers[%d]", i))
 			}
 		}
 	}

@@ -165,20 +165,17 @@ var asMuchOfCCAsPossible = Some(
 	Opt(Footers),
 )
 
-func ParseAsMuchOfCCAsPossible(fullCommit string) (result *CC, err error) {
+func ParseAsMuchOfCCAsPossible(fullCommit string) (result CC, err error) {
 	var parsed *Result
 	parsed, err = asMuchOfCCAsPossible([]rune(fullCommit))
-	if err != nil {
-		return nil, err
-	}
-	result = &CC{}
 	if parsed != nil && parsed.Children != nil {
 		for _, token := range parsed.Children {
-			result = result.Ingest(token)
+			result = *result.Ingest(token)
 		}
 	}
+
 	if parsed.Remaining != nil {
-		body := string(parsed.Remaining)
+		body := utils.Coalesce(result.Body, "") + string(parsed.Remaining)
 		result.Body = &body
 	}
 	return result, err
