@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// these example _s are copied from https://www.conventionalcommits.org/en/v1.0.0/, which is licensed under
+// these examples are copied from https://www.conventionalcommits.org/en/v1.0.0/, which is licensed under
 // CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/).  I've added escape sequences to record then as go multiline string literals.
 var validCCwithBreakingChangeFooter = `feat: allow provided config object to extend other configs
 
@@ -174,9 +174,9 @@ func TestParsingFullCommit(t *testing.T) {
 	prefix := "can parse a valid cc with "
 	t.Run(prefix+"breaking change footer", test(validCCwithBreakingChangeFooter, CC{
 		Type:           "feat",
-		Scope:          "",
+		Scope:          nil,
 		Description:    "allow provided config object to extend other configs",
-		Body:           "",
+		Body:           nil,
 		BreakingChange: true,
 		Footers: []string{
 			"BREAKING CHANGE: `extends` key in config file is now used for extending other config files",
@@ -184,44 +184,45 @@ func TestParsingFullCommit(t *testing.T) {
 	}))
 	t.Run(prefix+"a bang", test(validCCWithBreakingChangeBang, CC{
 		Type:           "refactor",
-		Scope:          "",
+		Scope:          nil,
 		Description:    "drop support for node 6",
-		Body:           "",
+		Body:           nil,
 		BreakingChange: true,
 	}))
 	t.Run(prefix+"both a bang and a breaking change footer", test(validCCwithBothBreakingChangeBangAndFooter, CC{
 		Type:           "refactor",
-		Scope:          "",
+		Scope:          nil,
 		Description:    "drop support for Node 6",
 		BreakingChange: true,
-		Body:           "",
+		Body:           nil,
 		Footers: []string{
 			"BREAKING CHANGE: refactor to use JavaScript features not available in Node 6.",
 		},
 	}))
 	t.Run(prefix+"only a header", test(validCCWithOnlyHeader, CC{
 		Type:           "docs",
-		Scope:          "",
+		Scope:          nil,
 		Description:    "correct spelling of CHANGELOG",
-		Body:           "",
+		Body:           nil,
 		Footers:        []string{},
 		BreakingChange: false,
 	}))
 	t.Run(prefix+"no body or footers but a scope", test(validCCWithScope, CC{
 		Type:           "feat",
-		Scope:          "lang",
+		Scope:          new("lang"),
 		Description:    "add polish language",
-		Body:           "",
+		Body:           new(""),
 		Footers:        []string{},
 		BreakingChange: false,
 	}))
 	t.Run(prefix+"footers", test(validCCWithFooters, CC{
-		Type:        "fix",
-		Scope:       "",
-		Description: "correct minor typos in code",
-		Body: `see the issue for details
+		Type:  "fix",
+		Scope: new(""),
 
-on typos fixed.`,
+		Description: "correct minor typos in code",
+		Body: new(`see the issue for details
+
+on typos fixed.`),
 		Footers: []string{
 			"Reviewed-by: Z",
 			"Refs #133"},
@@ -229,9 +230,9 @@ on typos fixed.`,
 	}))
 	t.Run(prefix+"reversion", test(validCCreversion, CC{
 		Type:           "revert",
-		Scope:          "",
+		Scope:          new(""),
 		Description:    "let us never again speak of the noodle incident",
-		Body:           "",
+		Body:           new(""),
 		Footers:        []string{"Refs: 676104e, a215868"},
 		BreakingChange: false,
 	}))
@@ -273,5 +274,5 @@ func TestParsingPartialCommit(t *testing.T) {
 	t.Run("valid `type:`", test("feat:", CC{Type: "feat"}))
 	t.Run("valid `type: `", test("feat: ", CC{Type: "feat"}))
 
-	t.Run("invalid `type\nbody`", test("feat\nbody", CC{Type: "feat", Body: "\nbody"}))
+	t.Run("invalid `type\nbody`", test("feat\nbody", CC{Type: "feat", Body: new("\nbody")}))
 }

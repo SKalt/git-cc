@@ -46,7 +46,7 @@ func generateShellCompletion(cmd *cobra.Command, args []string) {
 }
 
 // put a manpage in the first available location on the manpath
-func generateManPage(cmd *cobra.Command, args []string) {
+func generateManPage(cmd *cobra.Command, _ []string) {
 	root := cmd.Root()
 	header := &doc.GenManHeader{
 		Title:   "GIT-CC",

@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -23,13 +25,13 @@ func printVersion(version, commit, date string) {
 		version = "<unknown>"
 	}
 	s := strings.Builder{}
-	s.WriteString("git-cc ")
-	s.WriteString(version)
-	s.WriteString(" commit ")
-	s.WriteString(commit)
-	s.WriteString(" built ")
-	s.WriteString(date)
-	s.WriteRune('\n')
+	utils.Must(s.WriteString("git-cc "))
+	utils.Must(s.WriteString(version))
+	utils.Must(s.WriteString(" commit "))
+	utils.Must(s.WriteString(commit))
+	utils.Must(s.WriteString(" built "))
+	utils.Must(s.WriteString(date))
+	utils.Must(s.WriteRune('\n'))
 	fmt.Print(s.String())
 }
 
@@ -57,33 +59,38 @@ func getGitCommitCmd(cmd *cobra.Command) []string {
 }
 
 // run a potentially interactive `git commit`
-func doCommit(message string, dryRun bool, commitParams []string) {
+func doCommit(message string, dryRun bool, commitParams []string) (err error) {
 	f := config.GetCommitMessageFile()
 	file, err := os.Create(f)
 	if err != nil {
-		log.Fatalf("unable to create %s: %+v", f, err)
+		return fmt.Errorf("unable to create %s: %w", f, err)
 	}
 	_, err = file.Write([]byte(message))
 	if err != nil {
-		log.Fatalf("unable to write to %s: %+v", f, err)
+		return fmt.Errorf("unable to write to %s: %w", f, err)
 	}
 	if dryRun {
 		fmt.Println(message)
 	}
-	cmd := append([]string{"git", "commit", "--message", message}, commitParams...)
-	process := exec.Command(cmd[0], cmd[1:]...)
-	process.Stdin = os.Stdin
-	process.Stdout = os.Stdout
-	process.Stderr = os.Stderr
+	argv := append([]string{"git", "commit", "--message", message}, commitParams...)
+	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if dryRun {
-		fmt.Printf("would run: `%s`\n", strings.Join(cmd, " "))
-		os.Exit(0)
+		shellQuoted := strings.ReplaceAll(message, `"`, `\"`)
+		shellQuoted = strings.ReplaceAll(shellQuoted, "`", "\\`")
+		fmt.Printf(
+			"# would run:\ngit commit --message \\\n  '%s' \\\n  %s",
+			shellQuoted,
+			strings.Join(commitParams, " "),
+		)
+		return nil
 	} else {
-		err = process.Run()
-		if err != nil {
-			log.Fatalf("failed running `%+v`: %+v", cmd, err)
+		if err = cmd.Run(); err != nil {
+			return fmt.Errorf("failed running `%+v`: %w", argv, err)
 		} else {
-			os.Exit(0)
+			return
 		}
 	}
 }
@@ -102,27 +109,26 @@ const (
 )
 
 // run the conventional-commit helper logic. This may/not break into the TUI.
-func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
-
+func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) (err error) {
 	commitParams := getGitCommitCmd(cmd)
-	committingAllChanges, _ := cmd.Flags().GetBool("all")
-	allowEmpty, _ := cmd.Flags().GetBool("allow-empty")
+	committingAllChanges := utils.Must(cmd.Flags().GetBool("all"))
+	allowEmpty := utils.Must(cmd.Flags().GetBool("allow-empty"))
 	if !cfg.DryRun && !committingAllChanges {
 		buf := &bytes.Buffer{}
 		process := exec.Command("git", "diff", "--name-only", "--cached")
 		process.Stdout = buf
-		err := process.Run()
+		err = process.Run()
 		if err != nil {
-			log.Fatalf("fatal: not a git repository (or any of the parent directories): .git; %+v", err)
+			return fmt.Errorf("fatal: not a git repository (or any of the parent directories): .git; %w", err)
 		}
 		if buf.String() == "" && !allowEmpty {
-			log.Fatal("No files staged")
+			return errors.New("no files staged")
 		}
 	}
 
 	var cc *parser.CC
 
-	message, _ := cmd.Flags().GetStringArray("message")
+	message := utils.Must(cmd.Flags().GetStringArray("message"))
 
 	if len(message) > 0 {
 		//> If multiple `-m` options are given, their values are concatenated as separate paragraphs.
@@ -139,8 +145,8 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 			validationErrors |= InvalidType
 		}
 	}
-	if cc.Scope != "" {
-		if _, valid := cfg.Scopes.Get(cc.Scope); !valid {
+	if cc.Scope != nil {
+		if _, valid := cfg.Scopes.Get(*cc.Scope); !valid {
 			validationErrors |= InvalidScope
 		}
 	}
@@ -153,11 +159,11 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 		ui := tea.NewProgram(m)
 		out, err := ui.Run()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		result := out.(model)
 		if !result.ready() {
-			os.Exit(1) // no submission
+			return errors.New("cancelled") // no submission
 		} else {
 			commitMessage := result.value()
 			f := config.GetCommitMessageFile()
@@ -167,13 +173,12 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) {
 			}
 			_, err = file.Write([]byte(commitMessage))
 			if err != nil {
-				log.Fatalf("unable to write to file %s: %+v", f, err)
+				return fmt.Errorf("unable to write to file %s: %w", f, err)
 			}
-			doCommit(commitMessage, cfg.DryRun, commitParams)
+			return doCommit(commitMessage, cfg.DryRun, commitParams)
 		}
-	} else {
-		doCommit(cc.ToString(), cfg.DryRun, commitParams)
 	}
+	return doCommit(cc.ToString(), cfg.DryRun, commitParams)
 }
 
 func redoMessage(cmd *cobra.Command) {
@@ -190,7 +195,7 @@ func redoMessage(cmd *cobra.Command) {
 		os.Exit(127)
 	}
 	empty := true
-	for _, line := range strings.Split(
+	for line := range strings.SplitSeq(
 		strings.TrimSpace(string(data)),
 		"\n",
 	) {
@@ -210,41 +215,49 @@ func redoMessage(cmd *cobra.Command) {
 // and I'd like to be able to start an invocation like `git-cc this is the commit message`
 // without having to think about whether `this` is a subcommand.
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) (err error) {
 	flags := cmd.Flags()
 	if shouldPrintVersion, _ := flags.GetBool("version"); shouldPrintVersion {
 		printVersion(version, commit, date)
-		os.Exit(0)
+		return
 	} else if genCompletion, _ := flags.GetBool("generate-shell-completion"); genCompletion {
 		generateShellCompletion(cmd, args)
-		os.Exit(0)
+		return
 	} else if genManPage, _ := flags.GetBool("generate-man-page"); genManPage {
 		generateManPage(cmd, args)
-		os.Exit(0)
+		return
 	} else if shouldPrintSchema, _ := flags.GetBool("print-schema"); shouldPrintSchema {
 		fmt.Println(config.Schema)
-		os.Exit(0)
+		return
 	} else {
+		initLogger()
+		defer func() {
+			if debugLogFile != nil {
+				utils.Check(debugLogFile.Close())
+			}
+		}()
+
 		dryRun := utils.Must(cmd.Flags().GetBool("dry-run"))
-		cfg, err := config.Init(dryRun)
+		var cfg *config.Cfg
+		cfg, err = config.Init(dryRun, logger)
 		if err != nil {
-			log.Fatalf("%s", err)
+			return err
 		}
 		if showConfig, _ := flags.GetBool("show-config"); showConfig {
 			repoRoot, _ := config.GetGitRepoRoot()
-			_, tried, _ := config.FindCCConfigFile(repoRoot)
-			for _, f := range tried {
-				fmt.Printf("# %s\n", f)
+			_, err = config.FindCCConfigFile(repoRoot, logger)
+			if err != nil {
+				return err
 			}
 			file := cfg.ConfigFile
 			if file == "" {
 				file = "<default>"
 			}
 			fmt.Printf("config file path: %s\n", file)
-			os.Exit(0)
+			return
 		}
 		if init := utils.Must(flags.GetBool("init")); init {
-			format, _ := cmd.Flags().GetString("config-format")
+			format := utils.Must(cmd.Flags().GetString("config-format"))
 			switch format {
 			case "yaml", "yml", "toml":
 				break
@@ -252,17 +265,17 @@ func run(cmd *cobra.Command, args []string) {
 				log.Fatalf("unsupported default config-file format: %s", format)
 			}
 			if err != nil {
-				log.Fatalf("%s", err)
+				return err
 			}
-			if err := config.InitDefaultCfgFile(cfg, format); err != nil {
-				log.Fatalf("%s", err)
+			if err = config.InitDefaultCfgFile(cfg, format); err != nil {
+				return err
 			}
-			os.Exit(0)
+			return
 		}
 		if redo := utils.Must(flags.GetBool("redo")); redo {
 			redoMessage(cmd)
 		}
-		mainMode(cmd, args, cfg)
+		return mainMode(cmd, args, cfg)
 	}
 }
 
@@ -270,7 +283,7 @@ func runInit(cmd *cobra.Command, args []string) {
 	fmt.Println("init", args)
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	format, _ := cmd.Flags().GetString("config-format")
-	cfg, err := config.Init(dryRun)
+	cfg, err := config.Init(dryRun, nil)
 	switch format {
 	case "yaml", "yml", "toml":
 		break
@@ -293,6 +306,51 @@ func initCmd() *cobra.Command {
 	}
 }
 
+func completion(
+	cmd *cobra.Command, args []string, toComplete string,
+) (completions []cobra.Completion,
+	sc cobra.ShellCompDirective,
+) {
+	sc = cobra.ShellCompDirectiveNoFileComp
+	cfg, err := config.Init(true, slog.New(slog.DiscardHandler))
+	if err != nil {
+		completions = append(completions, err.Error())
+		return
+	}
+	switch len(args) {
+	case 0:
+		for _, ct := range config.Items(cfg.CommitTypes) {
+			if strings.HasPrefix(ct[0], toComplete) {
+				completions = append(completions, cobra.CompletionWithDesc(ct[0], ct[1]))
+			}
+		}
+	case 1:
+		switch {
+		case strings.HasSuffix(toComplete, ":"):
+			return
+		case strings.HasSuffix(toComplete, "!"):
+			completions = append(completions, ":")
+			return
+		case strings.HasSuffix(toComplete, ")"):
+			completions = append(completions, cobra.CompletionWithDesc("!", "breaking change"), ":")
+			return
+		case strings.Contains(toComplete, "("):
+			items := config.Items(cfg.Scopes)
+			completions = make([]cobra.Completion, 0, len(items)+1)
+			completions = append(
+				completions,
+				cobra.CompletionWithDesc("!", "breaking change"),
+			)
+			for _, i := range items {
+				completions = append(completions, cobra.CompletionWithDesc(i[0], i[1]))
+			}
+			return
+		default:
+		}
+	}
+	return
+}
+
 func Cmd(version_, commit_, date_ string) (cmd *cobra.Command) {
 	version = version_
 	commit = commit_
@@ -301,8 +359,11 @@ func Cmd(version_, commit_, date_ string) (cmd *cobra.Command) {
 	cmd = &cobra.Command{
 		Use:   "git-cc",
 		Short: "write conventional commits",
-		Run:   run,
+		RunE:  run,
 	}
+	cmd.CompletionOptions.DisableDefaultCmd = true
+	cmd.SetHelpCommand(&cobra.Command{Hidden: true})
+	cmd.ValidArgsFunction = completion
 	{ // flags for git-cc
 		flags := cmd.Flags()
 		flags.BoolP("help", "h", false, "print the usage of git-cc")

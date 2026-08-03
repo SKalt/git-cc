@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/skalt/git-cc/cmd"
+	"github.com/skalt/git-cc/internal/utils"
 )
 
 // provided by goreleaser; see .goreleaser.yml & https://goreleaser.com/cookbooks/using-main.version/
@@ -14,7 +15,7 @@ var (
 
 func main() {
 	if err := cmd.Cmd(version, commit, date).Execute(); err != nil {
-		fmt.Fprint(os.Stderr, err.Error()+"\n")
+		utils.Must(fmt.Fprintf(os.Stderr, "Fatal: %s\n", err.Error()))
 		os.Exit(1)
 	}
 }

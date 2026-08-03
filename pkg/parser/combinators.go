@@ -15,12 +15,12 @@ import (
 type Result struct {
 	// The Results of each off a the child parsers
 	Children  []Result
-	Type      string
+	Type      ResultType
 	Value     string
 	Remaining []rune
 }
 
-func (r *Result) CopyTyped(name string) *Result {
+func (r *Result) CopyTyped(name ResultType) *Result {
 	return &Result{
 		Children:  r.Children,
 		Remaining: r.Remaining,
@@ -66,7 +66,7 @@ func TakeUntil(parser Parser) Parser {
 	}
 }
 
-func Marked(mark string) func(Parser) Parser {
+func Marked(mark ResultType) func(Parser) Parser {
 	if len(mark) == 0 {
 		panic("empty mark")
 	}
@@ -159,20 +159,21 @@ func Any(parsers ...Parser) Parser {
 
 func Some(parsers ...Parser) Parser {
 	return func(input []rune) (*Result, error) {
-		var currentInput = make([]rune, len(input))
-		children := make([]Result, len(parsers))
+		var (
+			err          error
+			result       *Result
+			currentInput = make([]rune, len(input))
+			children     = make([]Result, 0, len(parsers))
+		)
 		copy(currentInput, input)
-		var err error
-		var result *Result
-		for i, parser := range parsers {
+		for _, parser := range parsers {
 			result, err = parser(currentInput)
 			if err != nil {
 				break
-			} else {
-				currentInput = result.Remaining
-				if len(result.Value)+len(result.Type) > 0 {
-					children[i] = *result
-				}
+			}
+			currentInput = result.Remaining
+			if len(result.Value)+len(result.Type) > 0 {
+				children = append(children, *result)
 			}
 		}
 		value := ""

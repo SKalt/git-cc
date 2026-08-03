@@ -4,6 +4,7 @@ shells=(
   bash
   zsh
 )
+
 generate_completions() {
   cli_name="$1"
   cmd="$*"

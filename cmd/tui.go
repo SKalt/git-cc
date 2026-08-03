@@ -3,11 +3,17 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"log/slog"
+	"os"
 	"strings"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/skalt/git-cc/internal/breaking_change_input"
 	"github.com/skalt/git-cc/internal/config"
+	"github.com/skalt/git-cc/internal/controls"
 	"github.com/skalt/git-cc/internal/description_editor"
 	"github.com/skalt/git-cc/internal/scope_selector"
 	"github.com/skalt/git-cc/internal/type_selector"
@@ -38,13 +44,15 @@ var (
 	}
 )
 
-type InputComponent interface {
-	Render(io.StringWriter)
-	Value() string
-}
+// TODO: light/dark styles
+// var styles = struct{dark, light lipgloss.Style}{
+// 	dark: lipgloss.NewStyle(),
+// 	light: lipgloss.NewStyle(),
+// }
+
+// FIXME: this should be referenceable by all the input components :/
 
 type model struct {
-	commit  [nIndices]string
 	viewing componentIndex
 
 	typeInput           type_selector.Model
@@ -53,64 +61,92 @@ type model struct {
 	breakingChangeInput breaking_change_input.Model
 	// any body stashed during the initial parse of command-line --message args
 	remainingBody string
+	help          help.Model
+	height        int
 }
 
 var _ tea.Model = model{}
 
 // returns whether the minimum requirements for a conventional commit are met.
 func (m model) ready() bool {
-	return len(m.commit[commitTypeIndex]) > 0 && len(m.commit[shortDescriptionIndex]) > 0
+	return m.typeInput.Value() != "" && m.descriptionInput.Value() != ""
+
+}
+
+func (m model) renderContextValue(s *strings.Builder) {
+	utils.Must(s.WriteString(m.typeInput.Value()))
+	scope := m.scopeInput.Value()
+	breakingChange := m.breakingChangeInput.Value()
+	if scope != "" {
+		utils.Must(fmt.Fprintf(s, "(%s)", scope))
+	}
+	if breakingChange != "" {
+		utils.Must(s.WriteRune('!'))
+	}
+	utils.Must(s.WriteString(": "))
 }
 
 // returns the context portion of the CC header, e.g `type(scope): `.
-func (m model) contextValue() string {
-	result := strings.Builder{}
-	result.WriteString(m.commit[commitTypeIndex])
-	scope := m.commit[scopeIndex]
-	breakingChange := m.commit[breakingChangeIndex]
-	if scope != "" {
-		utils.Must(fmt.Fprintf(&result, "(%s)", scope))
-	}
-	if breakingChange != "" {
-		result.WriteRune('!')
-	}
-	result.WriteString(": ")
-	return result.String()
-}
+func (m model) contextValue() string { return utils.Render(m.renderContextValue) }
 func (m model) descriptionValue() string {
-	return m.commit[shortDescriptionIndex]
+	return m.descriptionInput.Value()
 }
 func (m model) breakingChangeValue() string {
-	return m.commit[breakingChangeIndex]
+	return m.breakingChangeInput.Value()
 }
 
-// Returns a pretty-printed CC string. The model should be `.ready()` before you call `.value()`.
-func (m model) value() string {
-	result := strings.Builder{}
-	result.WriteString(m.contextValue())
-	result.WriteString(m.descriptionValue())
-	result.WriteString("\n")
-	if m.remainingBody != "" {
-		result.WriteString(m.remainingBody)
-		result.WriteString("\n")
+func (m model) withoutBreakingChange() (w model) {
+	w = m // clone by value
+	w.breakingChangeInput = breaking_change_input.Model{}
+	return w
+}
+
+func (m model) renderValue(s *strings.Builder) {
+	for _, p := range [...]string{
+		m.contextValue(), m.descriptionValue(),
+		"\n",
+		m.remainingBody,
+		"\n",
+	} {
+		utils.Must(s.WriteString(p))
 	}
 	if breakingChange := m.breakingChangeValue(); breakingChange != "" {
 		// TODO: handle multiple breaking change footers(?)
-		utils.Must(fmt.Fprintf(&result, "\n\nBREAKING CHANGE: %s\n", breakingChange))
+		utils.Must(fmt.Fprintf(s, "\nBREAKING CHANGE: %s\n", breakingChange))
 	}
-	return result.String()
+}
+
+// Returns a pretty-printed CC string. The model should be `.ready()` before you call `.value()`.
+func (m model) value() string { return utils.Render(m.renderValue) }
+
+// hacky globals
+var (
+	debugLogFile *os.File
+	logger       *slog.Logger
+)
+
+func initLogger() {
+	var l io.Writer
+	if logfile := getLogFile(); logfile == "" {
+		l = io.Discard
+	} else {
+		debugLogFile = utils.Must(tea.LogToFile(logfile, "tui"))
+		l = debugLogFile
+	}
+	h := slog.NewTextHandler(l, &slog.HandlerOptions{Level: slog.LevelDebug})
+	logger = slog.New(h)
 }
 
 func (m model) Init() tea.Cmd {
 	return tea.RequestBackgroundColor
 }
 
-func (m model) currentComponent() InputComponent {
-	return [...]InputComponent{
-		m.typeInput,
-		m.scopeInput,
-		m.descriptionInput,
-		m.breakingChangeInput,
+func (m model) currentComponent() controls.InputComponent {
+	return [...]controls.InputComponent{
+		&m.typeInput,
+		&m.scopeInput,
+		&m.descriptionInput,
+		&m.breakingChangeInput,
 	}[m.viewing]
 }
 
@@ -120,10 +156,8 @@ func (m model) currentComponent() InputComponent {
 func initialModel(cc *parser.CC, cfg *config.Cfg) model {
 	typeModel := type_selector.NewModel(cc, cfg)
 	scopeModel := scope_selector.NewModel(cc, *cfg)
-	descModel := description_editor.NewModel(
-		cfg.HeaderMaxLength, cc.Description, cfg.EnforceMaxLength,
-	)
-	bcModel := breaking_change_input.NewModel()
+	descModel := description_editor.NewModel(cc, cfg.HeaderMaxLength, cfg.EnforceMaxLength)
+	bcModel := breaking_change_input.NewModel(cc)
 	breakingChanges := ""
 	if cc.BreakingChange {
 		for _, footer := range cc.Footers {
@@ -133,31 +167,24 @@ func initialModel(cc *parser.CC, cfg *config.Cfg) model {
 			}
 		}
 	}
-	commit := [nIndices]string{
-		cc.Type,
-		cc.Scope,
-		cc.Description,
-		breakingChanges,
-	}
 	m := model{
-		commit:              commit,
 		typeInput:           typeModel,
 		scopeInput:          scopeModel,
 		descriptionInput:    descModel,
 		breakingChangeInput: bcModel,
 		viewing:             commitTypeIndex,
-		remainingBody:       cc.Body,
+		help:                help.New(),
 	}
-	if m.shouldSkip(m.viewing) {
-		m = m.submit().advance()
-		m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
+	if cc.Body != nil {
+		m.remainingBody = *cc.Body
 	}
+	m, _ = m.advance() // hmm, this doesn't seem right
+	m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
 	return m
 }
 
 // pass the `msg` to the currently-displayed component/view
-func (m model) updateCurrentInput(msg tea.Msg) (model, tea.Cmd) {
-	var cmd tea.Cmd
+func (m model) updateCurrentInput(msg tea.Msg) (w model, cmd tea.Cmd) {
 	switch m.viewing {
 	case commitTypeIndex:
 		m.typeInput, cmd = m.typeInput.Update(msg)
@@ -168,81 +195,55 @@ func (m model) updateCurrentInput(msg tea.Msg) (model, tea.Cmd) {
 	case breakingChangeIndex:
 		m.breakingChangeInput, cmd = m.breakingChangeInput.Update(msg)
 	}
+	m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
 	return m, cmd
 }
 
-func (m model) shouldSkip(component componentIndex) bool {
-	switch component {
-	case commitTypeIndex:
-		return m.typeInput.ShouldSkip(m.commit[commitTypeIndex])
-	case scopeIndex:
-		return m.scopeInput.ShouldSkip(m.commit[scopeIndex])
-	default:
-		return false
-	}
+func (m model) shouldSkip() (shouldSkip bool) {
+	return m.currentComponent().Ready()
 }
 
-func (m model) advance() model { // TODO: consider submitting w/in this fn
-	for {
+func (m model) advance() (model, tea.Cmd) {
+	for m.viewing < breakingChangeIndex && m.shouldSkip() {
+		logger.Debug("advance", "index", m.viewing)
 		m.viewing++
-		if !m.shouldSkip(m.viewing) {
-			break
-		}
 	}
-	return m
+	if m.viewing == breakingChangeIndex && m.shouldSkip() {
+		return m, tea.Quit
+	}
+	return m, nil
 }
 
-func (m model) submit() model {
-	m.commit[m.viewing] = m.currentComponent().Value()
-	m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
-	return m
+func getLogFile() string {
+	d := os.Getenv("GIT_CC_DEBUG")
+	switch d {
+	case "true", "TRUE", "1":
+		return "debug.log"
+	case "", "false", "FALSE", "0":
+		return ""
+	default:
+		return d
+	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	logger.Debug("update", "msg", fmt.Sprintf("%#v", msg))
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "ctrl+c", "ctrl+d":
+		k := msg.Key()
+		switch {
+		case key.Matches(k, controls.Keymap.Cancel):
 			return m, tea.Quit
-		}
-		switch msg.Code {
-		case tea.KeyEnter, tea.KeyTab:
-			if msg.Mod == tea.ModShift {
-				if m.viewing > commitTypeIndex {
-					m.viewing--
-				}
-				return m, cmd
+		case key.Matches(k, controls.Keymap.Back):
+			if m.viewing > commitTypeIndex {
+				m.viewing--
 			}
-			switch m.viewing {
-			default:
-				m = m.submit().advance()
-			case commitTypeIndex:
-				if m.currentComponent().Value() == "" {
-					return m, cmd
-				} else {
-					m = m.submit().advance()
-				}
-			case scopeIndex:
-				if m.currentComponent().Value() == "new scope" {
-					m.scopeInput, cmd = m.scopeInput.Update(msg)
-					return m, cmd
-				} else {
-					m = m.submit().advance()
-				}
-			case breakingChangeIndex:
-				m = m.submit()
-				if m.ready() {
-					return m, tea.Quit
-				} else {
-					// TODO: better validation messages
-					if m.commit[commitTypeIndex] == "" {
-						m.viewing = commitTypeIndex
-					} else if m.commit[shortDescriptionIndex] == "" {
-						m.viewing = shortDescriptionIndex
-					}
-					return m, cmd
-				}
+			return m, cmd
+		case key.Matches(k, controls.Keymap.Next):
+			m, _ = m.updateCurrentInput(msg)
+			if m.currentComponent().Ready() {
+				m, cmd = m.advance()
 			}
 			return m, cmd
 		default:
@@ -254,17 +255,38 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.scopeInput, _ = m.scopeInput.Update(msg)
 		m.descriptionInput, _ = m.descriptionInput.Update(msg)
 		m.breakingChangeInput, cmd = m.breakingChangeInput.Update(msg)
+		m.help.SetWidth(msg.Width)
+		m.height = msg.Height
 	default:
 		m, cmd = m.updateCurrentInput(msg)
 	}
 	return m, cmd
 }
 
+func (m model) renderCurrentComponent(s *strings.Builder) {
+	style := lipgloss.NewStyle().Faint(true).Align(lipgloss.Left).PaddingRight(0)
+	switch m.viewing {
+	case breakingChangeIndex:
+		buf := strings.Builder{}
+		utils.Must(fmt.Fprintf(s, "%#v", style))
+		m.withoutBreakingChange().renderValue(&buf) // !!
+		utils.Must(s.WriteString((buf.String())))
+	}
+	m.currentComponent().Render(s)
+}
+
 func (m model) View() (v tea.View) {
 	v.AltScreen = true
 	s := strings.Builder{}
-	m.currentComponent().Render(&s)
-	s.WriteString("\n")
+	m.renderCurrentComponent(&s)
+	utils.Must(s.WriteString("\n"))
+	lines := strings.Count(s.String(), "\n")
+	padding := m.height - lines - 1
+	if padding < 0 {
+		padding = 0
+	}
+	utils.Must(s.WriteString(strings.Repeat("\n", padding)))
+	s.WriteString(controls.View(&m.help))
 	v.Content = s.String()
 	return v
 }

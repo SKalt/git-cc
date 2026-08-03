@@ -4,9 +4,8 @@ package description_editor
 
 import (
 	"fmt"
-	"io"
+	"strings"
 
-	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -14,24 +13,22 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/skalt/git-cc/internal/config"
 	"github.com/skalt/git-cc/internal/controls"
-	"github.com/skalt/git-cc/internal/helpbar"
 	"github.com/skalt/git-cc/internal/utils"
+	"github.com/skalt/git-cc/pkg/parser"
 )
 
-const prePrompt = "A short description of the changes:"
+const header = "A short description of the changes:"
 
 type Model struct {
-	width       int             // TODO: drop in favor of input.Width()
-	input       textinput.Model // TODO: make input a pointer
-	lengthLimit int
-	helpBar     helpbar.Model
 	prefix      string
-	help        help.Model
+	input       textinput.Model
+	lengthLimit int
 }
 
+var _ controls.InputComponent = Model{}
+
 func (m Model) SetPrefix(prefix string) Model {
-	m.prefix = prefix
-	m.input.Prompt = prefix
+	m.input.Prompt = config.Faint(prefix)
 	return m
 }
 func (m Model) SetErr(err error) Model {
@@ -50,12 +47,14 @@ var keymap = struct {
 	next, back, cancel key.Binding
 }{next: controls.Keymap.Next, back: controls.Keymap.Back, cancel: controls.Keymap.Cancel}
 
-func NewModel(lengthLimit int, value string, enforced bool) Model {
+func NewModel(cc *parser.CC, lengthLimit int, enforced bool) Model {
+	var value string
+	if cc != nil {
+		value = cc.Description
+	}
 	input := textinput.New()
 	input.SetValue(value)
 	input.SetCursor(len(value))
-	// input.Cursor = len(value)
-	input.Prompt = config.Faint(prePrompt)
 	if enforced {
 		input.CharLimit = lengthLimit
 	}
@@ -63,13 +62,12 @@ func NewModel(lengthLimit int, value string, enforced bool) Model {
 	return Model{
 		lengthLimit: lengthLimit,
 		input:       input,
-		help:        help.New(),
 	}
 }
 
 // a styled length-counter, e.g. ( 9/80)
 func viewCounter(m Model) string {
-	current := len(m.prefix) + len(m.input.Value())
+	current := len(m.input.Prompt) + len(m.input.Value())
 	paddedFormat := fmt.Sprintf(
 		"(%%%dd/%d)", len(fmt.Sprintf("%d", m.lengthLimit)), m.lengthLimit,
 	)
@@ -98,9 +96,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, cmd
 		}
 	case tea.WindowSizeMsg:
-		m.helpBar, cmd = m.helpBar.Update(msg)
 		m.input.SetWidth(msg.Width)
-		m.width = msg.Width
 		return m, cmd
 	default:
 		m.input, _ = m.input.Update(msg)
@@ -109,19 +105,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 }
 
-func (m Model) Render(s io.StringWriter) {
-
-	utils.Must(s.WriteString(wordwrap.String(config.Faint(prePrompt+" "+viewCounter(m)), m.width)))
+func (m Model) Render(s *strings.Builder) {
+	utils.Must(s.WriteString(wordwrap.String(config.Faint(header+" "+viewCounter(m)), m.input.Width())))
 	utils.Must(s.WriteString("\n\n"))
 	val := m.input.View()
 	utils.Must(s.WriteString(val))
 	utils.Must(s.WriteString("\n\n"))
-	utils.Must(s.WriteString(m.help.ShortHelpView([]key.Binding{
-		keymap.back, keymap.next, keymap.cancel,
-	})))
-
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil // textinput.Blink(m.input)?
 }
+
+func (m Model) Ready() bool { return m.input.Value() != "" }

@@ -6,12 +6,14 @@ import (
 	"iter"
 	"strings"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
-	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/muesli/reflow/indent"
 	"github.com/muesli/reflow/wordwrap"
+	"github.com/skalt/git-cc/internal/controls"
 	"github.com/skalt/git-cc/internal/utils"
 )
 
@@ -21,13 +23,30 @@ type ListItem [2]string
 func (i ListItem) FilterValue() string { return i[0] }
 
 type Model struct {
-	list      list.Model
-	textInput textinput.Model
-	context   string
+	list  list.Model
+	value string
 }
+
+// FullHelp implements [help.KeyMap].
+func (m Model) FullHelp() [][]key.Binding {
+	return [][]key.Binding{m.ShortHelp()}
+}
+
+// ShortHelp implements [help.KeyMap].
+func (m Model) ShortHelp() (keys []key.Binding) {
+	keys = append(keys, controls.Keymap.Up, controls.Keymap.Down)
+	return keys
+}
+
+var _ help.KeyMap = Model{}
 
 func (m Model) Init() tea.Cmd {
 	return nil
+}
+
+func maxHeight(h int) (max int) {
+	const otherLines = 3 // help + input + context
+	return h - otherLines
 }
 
 func toListItems(input []ListItem) []list.Item {
@@ -39,10 +58,10 @@ func toListItems(input []ListItem) []list.Item {
 }
 
 func NewModel(
-	context string,
+	title string,
 	value string,
 	options []ListItem,
-) Model {
+) (m Model) {
 	optWidth := 0
 	for _, opt := range options {
 		if optWidth < len(opt[0]) {
@@ -50,44 +69,30 @@ func NewModel(
 		}
 	}
 	delegate := newSelectDelegate(optWidth + 1)
-	l := list.New(toListItems(options), delegate, 80, 24)
+	w := 80
+	h := 24
+	l := list.New(toListItems(options), delegate, w, maxHeight(h))
+	l.Help = help.New()
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
-	l.SetShowPagination(false)
+	l.SetShowPagination(true)
 	l.SetShowHelp(false)
-	l.SetShowFilter(false)
+	l.SetShowFilter(true)
+	l.SetFilteringEnabled(true)
+	l.Title = title // this gets hidden when filtering, so we have to re-render it
 	l.InfiniteScrolling = true
 	l.SetFilterText(value)
-
-	input := textinput.New()
+	l.SetFilterState(list.Filtering)
+	input := &l.FilterInput
 	input.Placeholder = "type to select"
-	input.Prompt = "   "
-	input.ShowSuggestions = true
-	suggestions := make([]string, 0, len(options))
-	for _, o := range options {
-		suggestions = append(suggestions, o[0])
-	}
-	input.SetSuggestions(suggestions)
-	input.SetValue(value)
-	input.SetCursor(len(value))
-	input.Focus()
-
-	return Model{
-		list:      l,
-		textInput: input,
-		context:   context,
-	}
+	input.Prompt = " "            // to align with the list column
+	input.ShowSuggestions = false // since the filtered list already provides suggestions
+	return Model{list: l, value: value}
 }
 
-func (m *Model) Focus() tea.Cmd { return m.textInput.Focus() }
-
-func (m Model) SetErr(err error) Model {
-	m.textInput.Err = err
-	return m
-}
-
-func (m Model) Focused() bool { return m.textInput.Focused() }
-func (m Model) Blur()         { m.textInput.Blur() }
+func (m *Model) Focus() tea.Cmd { return m.list.FilterInput.Focus() }
+func (m Model) Focused() bool   { return m.list.FilterInput.Focused() }
+func (m Model) Blur()           { m.list.FilterInput.Blur() }
 func (m Model) Options() iter.Seq[string] {
 	return func(yield func(string) bool) {
 		for _, o := range m.list.Items() {
@@ -97,25 +102,26 @@ func (m Model) Options() iter.Seq[string] {
 		}
 	}
 }
+func (m Model) SetErr(err error) Model {
+	m.list.FilterInput.Err = err
+	return m
+}
 
 // Value returns the selected item's title, or "" if nothing is selected.
-func (m Model) Value() string {
-	item := m.list.SelectedItem()
-	if item == nil {
-		return ""
+// This will never return an invalid non-empty string.
+func (m Model) Value() (value string) {
+	selected := m.list.SelectedItem().(ListItem)[0]
+	if m.value == selected {
+		value = selected
 	}
-	return item.(ListItem)[0]
+	return value
 }
 
-func (m Model) CurrentInput() string {
-	return m.textInput.Value()
-}
+func (m Model) CurrentInput() string { return m.list.FilterValue() }
 
 // UpdateItems replaces the list items, updates the match function, and re-applies the filter.
 func (m *Model) UpdateItems(options []ListItem) tea.Cmd {
-	cmd := m.list.SetItems(toListItems(options))
-	m.list.SetFilterText(m.textInput.Value())
-	return cmd
+	return m.list.SetItems(toListItems(options))
 }
 
 // selectDelegate renders list items with hints.
@@ -132,7 +138,7 @@ type selectDelegateStyles struct {
 
 func newSelectDelegate(optWidth int) selectDelegate {
 	return selectDelegate{
-		height:   2,
+		height:   1,
 		spacing:  0,
 		optWidth: optWidth,
 		styles: selectDelegateStyles{
@@ -159,7 +165,6 @@ func (d selectDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 }
 
 func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-
 	if m.Width() <= 0 {
 		return
 	}
@@ -188,57 +193,35 @@ func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	}
 }
 
-func MatchStart(query, option string) bool {
-	return len(query) <= len(option) && option[:len(query)] == query
-}
-
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "ctrl+c":
-			return m, tea.Quit
-		case "up", "ctrl+p":
-			m.list.CursorUp()
-			return m, nil
-		case "down", "ctrl+n":
+		k := msg.Key()
+		switch {
+		case key.Matches(k, controls.Keymap.Down):
 			m.list.CursorDown()
 			return m, nil
+		case key.Matches(k, controls.Keymap.Up):
+			m.list.CursorUp()
+			return m, nil
+		case key.Matches(k, controls.Keymap.Next):
+			m.value = m.list.SelectedItem().(ListItem)[0]
+			return m, nil
 		default:
-			oldValue := m.textInput.Value()
-			m.textInput, cmd = m.textInput.Update(msg)
-			if m.textInput.Value() != oldValue {
-				m.list.SetFilterText(m.textInput.Value())
-			}
+			m.list, cmd = m.list.Update(msg)
 			return m, cmd
 		}
 	case tea.MouseWheelMsg:
-		switch msg.Button {
-		case tea.MouseWheelUp:
-			m.list.CursorUp()
-			return m, nil
-		case tea.MouseWheelDown:
-			m.list.CursorDown()
-			return m, nil
-		default:
-			oldValue := m.textInput.Value()
-			m.textInput, cmd = m.textInput.Update(msg)
-			if m.textInput.Value() != oldValue {
-				m.list.SetFilterText(m.textInput.Value())
-			}
-			return m, cmd
-		}
+		m.list, cmd = m.list.Update(msg)
+		return m, cmd
 	case tea.WindowSizeMsg:
-		m.list.SetSize(msg.Width, msg.Height)
-		m.textInput, cmd = m.textInput.Update(msg)
+		h := maxHeight(msg.Height)
+		m.list.SetSize(msg.Width, h)
+		m.list.Help.SetWidth(msg.Width)
 		return m, cmd
 	default:
-		oldValue := m.textInput.Value()
-		m.textInput, cmd = m.textInput.Update(msg)
-		if m.textInput.Value() != oldValue {
-			m.list.SetFilterText(m.textInput.Value())
-		}
+		m.list, cmd = m.list.Update(msg)
 		return m, cmd
 	}
 }
@@ -253,10 +236,6 @@ func wrapLine(left uint, text string, right int, style lipgloss.Style) string {
 }
 
 func (m Model) Render(s io.StringWriter) {
-	utils.Must(s.WriteString(m.context))
-	utils.Must(s.WriteString("\n"))
-	utils.Must(s.WriteString(m.textInput.View()))
-	utils.Must(s.WriteString("\n"))
+	utils.Must(s.WriteString(m.list.Title + "\n"))
 	utils.Must(s.WriteString(m.list.View()))
-	utils.Must(s.WriteString("\n"))
 }

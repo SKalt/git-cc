@@ -1,50 +1,61 @@
+// FIXME: allow for multiple breaking change footers
 package breaking_change_input
 
 import (
-	"io"
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"github.com/muesli/termenv"
-	"github.com/skalt/git-cc/internal/config"
-	"github.com/skalt/git-cc/internal/helpbar"
+	"charm.land/lipgloss/v2"
+	"github.com/skalt/git-cc/internal/controls"
 	"github.com/skalt/git-cc/internal/utils"
+	"github.com/skalt/git-cc/pkg/parser"
 )
 
 type Model struct {
-	input   textinput.Model
-	helpBar helpbar.Model
+	input      textinput.Model
+	hasBeenSet bool
 }
 
-var helpBar = termenv.String(strings.Join(
-	[]string{config.HelpSubmit, config.HelpBack, config.HelpCancel}, "; "),
-).Faint().String()
+var _ controls.InputComponent = &Model{}
 
+// without the BREAKING CHANGE prefix
+// Value implements [controls.InputComponent]
 func (m Model) Value() string {
 	return m.input.Value()
 }
 
-func (m Model) Render(b io.StringWriter) {
-	_ = utils.Must(b.WriteString(m.input.View()))
-	_ = utils.Must(b.WriteString("\n\n"))
-	_ = utils.Must(b.WriteString(helpBar))
-	_ = utils.Must(b.WriteString("\n"))
+// render implements [controls.InputComponent]
+func (m Model) Render(b *strings.Builder) {
+	utils.Must(b.WriteString(m.input.View()))
+	utils.Must(b.WriteString("\n\n"))
 }
 
 func (m Model) Update(msg tea.Msg) (out Model, cmd tea.Cmd) {
-	m.input, cmd = m.input.Update(msg)
 	out = m
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		if key.Matches(msg.Key(), controls.Keymap.Next) {
+			out.hasBeenSet = true
+		}
+	}
+	out.input, cmd = m.input.Update(msg)
 	return
 }
 
-func NewModel() Model {
-	input := textinput.New()
-	input.Prompt = termenv.String("Breaking changes: ").Faint().String()
-	input.Placeholder = "if any."
-	input.Focus()
-	return Model{
-		input,
-		helpbar.NewModel(config.HelpSubmit, config.HelpBack, config.HelpCancel),
+func NewModel(cc *parser.CC) (m Model) {
+	var value string
+	footers := cc.BreakingChanges()
+	if len(footers) > 0 {
+		value = strings.Split(footers[0], ": ")[1]
 	}
+	m.input = textinput.New()
+	m.input.SetValue(value)
+	m.input.Prompt = lipgloss.NewStyle().Faint(true).Render("BREAKING CHANGES: ")
+	m.input.Placeholder = "if any."
+	m.input.Focus()
+	return m
 }
+
+func (m Model) Ready() bool { return m.hasBeenSet }

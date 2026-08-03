@@ -5,14 +5,15 @@ _.path = ["{{config_root}}/bin"]
 [tools]
 go = "latest"
 "go:github.com/nametake/golangci-lint-langserver" = "latest"
+"go:golang.org/x/tools/gopls" = "latest"
 golangci-lint = "latest"
 
 [[hooks.enter]]
 # https://mise.jdx.dev/hooks.html#shell-hooks
 shell = "bash"
-script = '. "${{config_root}}/scripts/completions/load.sh"'
+script = '. "{{config_root}}/scripts/completions/load.sh"'
 
 [[hooks.enter]]
 # https://mise.jdx.dev/hooks.html#shell-hooks
 shell = "zsh"
-script = '. "${{config_root}}/scripts/completions/load.sh"'
+script = '. "{{config_root}}/scripts/completions/load.sh"'

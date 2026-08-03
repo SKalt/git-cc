@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"iter"
 	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path"
@@ -125,14 +126,8 @@ func angularCommitTypes() *OrderedMap[string, string] {
 	}
 }
 
-const (
-	HelpSubmit = "submit: tab/enter"
-	HelpBack   = "go back: shift+tab"
-	HelpCancel = "cancel: ctrl+c"
-	HelpSelect = "navigate: up/down"
-)
-
 func Faint(s string) string {
+	// FIXME: this should use lipgloss
 	return termenv.String(s).Faint().String()
 }
 
@@ -150,6 +145,7 @@ type Cfg struct {
 	HeaderMaxLength  int
 	EnforceMaxLength bool // TODO: derive from whether header_max_length present in the config
 	DryRun           bool
+	logger           *slog.Logger
 }
 
 func (c *Cfg) Clone() Cfg {
@@ -170,6 +166,7 @@ func (c *Cfg) Clone() Cfg {
 		HeaderMaxLength:  c.HeaderMaxLength,
 		EnforceMaxLength: c.EnforceMaxLength,
 		DryRun:           c.DryRun,
+		logger:           c.logger,
 	}
 }
 
@@ -193,6 +190,9 @@ func (original *Cfg) merge(other *Cfg) {
 	original.EnforceMaxLength = other.EnforceMaxLength
 	if other.HeaderMaxLength > 0 {
 		original.HeaderMaxLength = other.HeaderMaxLength
+	}
+	if original.logger != nil {
+		original.logger = other.logger
 	}
 }
 
@@ -229,7 +229,7 @@ func ConstructDefaultFile(
 func (cfg *Cfg) ReadCfgFile(mustExist bool) (err error) {
 	configFile := cfg.ConfigFile
 	if configFile == "" {
-		configFile, _, err = FindCCConfigFile(cfg.gitRepoRoot)
+		configFile, err = FindCCConfigFile(cfg.gitRepoRoot, cfg.logger)
 		if err != nil {
 			if mustExist {
 				return err
@@ -247,7 +247,7 @@ func (cfg *Cfg) ReadCfgFile(mustExist bool) (err error) {
 }
 
 // Initialize the global CentralStore of configuration.
-func Init(dryRun bool) (*Cfg, error) {
+func Init(dryRun bool, logger *slog.Logger) (*Cfg, error) {
 	cfg := Cfg{
 		CommitTypes:     angularCommitTypes(),
 		Scopes:          &OrderedMap[string, string]{},
@@ -256,6 +256,7 @@ func Init(dryRun bool) (*Cfg, error) {
 		// commit hash and one space before the commit message.
 		EnforceMaxLength: false,
 		DryRun:           dryRun,
+		logger:           logger,
 	}
 	gitDir, err := getGitDir()
 	if err != nil {
@@ -415,7 +416,7 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 	return &cfg, nil
 }
 
-func FindCCConfigFile(gitRepoRoot string) (string, []string, error) {
+func FindCCConfigFile(gitRepoRoot string, logger *slog.Logger) (string, error) {
 	// pkgMeta := map[string]map[string]interface{}{} // cache the unmarshalled package.json/pyproject.toml for reuse
 	candidateFiles := [...]string{
 		"commit_convention.yaml",
@@ -477,8 +478,9 @@ func FindCCConfigFile(gitRepoRoot string) (string, []string, error) {
 			configFile := path.Join(dir, candidate)
 			_, err := os.Stat(configFile)
 			if err == nil {
-				return configFile, tried, nil
+				return configFile, nil
 			} else {
+				logger.Debug("missing", "config_file_candidate", configFile)
 				tried = append(tried, configFile)
 			}
 			wrongName := strings.ReplaceAll(candidate, "_", "-")
@@ -489,13 +491,13 @@ func FindCCConfigFile(gitRepoRoot string) (string, []string, error) {
 			}
 		}
 	}
-	return "", tried, fmt.Errorf("no configuration found in \n  - %s", strings.Join(tried, "\n  - "))
+	return "", fmt.Errorf("no configuration found in \n  - %s", strings.Join(tried, "\n  - "))
 }
 
 // find the root of the tree that git is working on
 func GetGitRepoRoot() (string, error) {
 	if env := os.Getenv("GIT_WORK_TREE"); env != "" {
-		// there might be a `$GIT_COMMON_DIR?`
+		// there might be a `$GIT_COMMON_DIR`?
 		return env, nil
 	}
 	out, err := stdoutFrom("git", "rev-parse", "--show-toplevel")
@@ -650,7 +652,7 @@ func InitDefaultCfgFile(cfg *Cfg, format string) error {
 func EditCfgFileCmd(cfg *Cfg) *exec.Cmd {
 	editCmd := []string{}
 	// sometimes `$EDITOR` can be a script with spaces, like `code --wait`
-	for _, part := range strings.Split(GetEditor(), " ") {
+	for part := range strings.SplitSeq(GetEditor(), " ") {
 		if part != "" {
 			editCmd = append(editCmd, part)
 		}
