@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"log/slog"
 	"os"
@@ -61,16 +62,15 @@ func getGitCommitCmd(cmd *cobra.Command) []string {
 // run a potentially interactive `git commit`
 func doCommit(message string, dryRun bool, commitParams []string) (err error) {
 	f := config.GetCommitMessageFile()
-	file, err := os.Create(f)
-	if err != nil {
-		return fmt.Errorf("unable to create %s: %w", f, err)
-	}
-	_, err = file.Write([]byte(message))
-	if err != nil {
-		return fmt.Errorf("unable to write to %s: %w", f, err)
-	}
-	if dryRun {
-		fmt.Println(message)
+	if !dryRun {
+		file, err := os.Create(f)
+		if err != nil {
+			return fmt.Errorf("unable to create %s: %w", f, err)
+		}
+		_, err = file.Write([]byte(message))
+		if err != nil {
+			return fmt.Errorf("unable to write to %s: %w", f, err)
+		}
 	}
 	argv := append([]string{"git", "commit", "--message", message}, commitParams...)
 	cmd := exec.Command(argv[0], argv[1:]...)
@@ -126,17 +126,16 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) (err error) {
 		}
 	}
 
-	var cc *parser.CC
-
 	message := utils.Must(cmd.Flags().GetStringArray("message"))
-
+	var toParse string
 	if len(message) > 0 {
+		toParse = strings.Join(message, "\n\n")
 		//> If multiple `-m` options are given, their values are concatenated as separate paragraphs.
 		//> see https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---messageltmsggt
-		cc, _ = parser.ParseAsMuchOfCCAsPossible(strings.Join(message, "\n\n"))
 	} else {
-		cc, _ = parser.ParseAsMuchOfCCAsPossible((strings.Join(args, " ")))
+		toParse = strings.Join(args, " ")
 	}
+	cc, _ := parser.ParseAsMuchOfCCAsPossible(toParse)
 	var validationErrors ValidationErrors = 0
 	if cc.Type == "" {
 		validationErrors |= InvalidType
@@ -155,7 +154,7 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) (err error) {
 	}
 
 	if validationErrors != 0 {
-		m := initialModel(cc, cfg)
+		m := initialModel(&cc, cfg)
 		ui := tea.NewProgram(m)
 		out, err := ui.Run()
 		if err != nil {
@@ -181,34 +180,34 @@ func mainMode(cmd *cobra.Command, args []string, cfg *config.Cfg) (err error) {
 	return doCommit(cc.ToString(), cfg.DryRun, commitParams)
 }
 
-func redoMessage(cmd *cobra.Command) {
+func redoMessage(cmd *cobra.Command) (err error) {
 	flags := cmd.Flags()
 	msg := utils.Must(flags.GetStringArray("message"))
-	if len(msg) > 0 {
+	if len(msg) > 0 { // FIXME: do this with flag groups
 		log.Fatal("-m|--message is incompatible with --redo")
 	}
 	commitMessagePath := config.GetCommitMessageFile()
-	data, err := os.ReadFile(commitMessagePath)
+	preExisting, err := os.ReadFile(commitMessagePath)
 	// TODO: ignore commented lines in git-commit file
 	if err != nil {
-		fmt.Printf("file not found: %s", commitMessagePath)
-		os.Exit(127)
+		return fmt.Errorf("unable to read file %q: %w", commitMessagePath, err)
 	}
+	preExisting = []byte(strings.TrimSpace(string(preExisting)))
 	empty := true
-	for line := range strings.SplitSeq(
-		strings.TrimSpace(string(data)),
-		"\n",
-	) {
+	message := make([]byte, 0, len(preExisting))
+	for line := range strings.SplitSeq(string(preExisting), "\n") {
 		if !strings.HasPrefix(strings.TrimLeft(line, " \t\r\n"), "#") {
 			empty = false
-			break // ok
+			message = append(message, []byte(line)...)
+			message = append(message, byte('\n'))
 		}
 	}
 	if empty {
-		log.Fatalf("Empty commit message: %s", commitMessagePath)
+		return fmt.Errorf("empty commit message: %q", commitMessagePath)
 	}
 
-	utils.Check(flags.Set("message", string(data)))
+	utils.Check(flags.Set("message", string(preExisting)))
+	return
 }
 
 // Note: I'm not using cobra subcommands since they prevent passing arbitrary arguments,
@@ -273,7 +272,9 @@ func run(cmd *cobra.Command, args []string) (err error) {
 			return
 		}
 		if redo := utils.Must(flags.GetBool("redo")); redo {
-			redoMessage(cmd)
+			if err = redoMessage(cmd); err != nil {
+				return
+			}
 		}
 		return mainMode(cmd, args, cfg)
 	}
@@ -359,7 +360,19 @@ func Cmd(version_, commit_, date_ string) (cmd *cobra.Command) {
 	cmd = &cobra.Command{
 		Use:   "git-cc",
 		Short: "write conventional commits",
-		RunE:  run,
+		Args:  cobra.ArbitraryArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := run(cmd, args); err != nil {
+				utils.Must(fmt.Fprint(os.Stderr, err.Error()))
+				if errors.Is(err, fs.ErrNotExist) {
+					os.Exit(127)
+				} else if _, ok := errors.AsType[*exec.Error](err); ok {
+					os.Exit(127)
+				} else {
+					os.Exit(1)
+				}
+			}
+		},
 	}
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.SetHelpCommand(&cobra.Command{Hidden: true})

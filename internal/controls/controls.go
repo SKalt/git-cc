@@ -5,7 +5,6 @@ import (
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
-	tea "charm.land/bubbletea/v2"
 )
 
 var Keymap = struct {
@@ -26,18 +25,9 @@ func View(h *help.Model, extras ...key.Binding) string {
 	}, extras...))
 }
 
-// use this to communicate Values up the chain
-type ValueMsg string
-
-var (
-	_ tea.Msg = ValueMsg("")
-)
-
 // the commonalities of the sub-components
 type InputComponent interface {
 	Render(*strings.Builder)
 	Value() string
 	Ready() bool
 }
-
-// Update(tea.Msg) (Model, tea.Cmd)

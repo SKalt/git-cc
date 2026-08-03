@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/atotto/clipboard"
 	"github.com/skalt/git-cc/internal/config"
@@ -23,12 +25,19 @@ type Model struct {
 	hasBeenSet        bool
 }
 
-var _ controls.InputComponent = Model{}
+// FullHelp implements [help.KeyMap].
+func (m Model) FullHelp() [][]key.Binding { return m.input.FullHelp() }
+
+// ShortHelp implements [help.KeyMap].
+func (m Model) ShortHelp() []key.Binding { return m.input.ShortHelp() }
+
+var (
+	_ controls.InputComponent = Model{}
+	_ help.KeyMap             = Model{}
+)
 
 type editorStartMsg struct{}
 type editorFinishedMsg struct{ err error }
-
-// makeMatch returns a match function that captures the current options.
 
 // given options from config, add the leading "unscoped" and trailing "new scope" options
 func makeOptions(options *config.OrderedMap[string, string]) (items []single_select.ListItem) {
@@ -46,6 +55,7 @@ func NewModel(cc *parser.CC, cfg config.Cfg) (m Model) {
 		config.Faint("select a scope:"),
 		utils.Coalesce(cc.Scope, ""),
 		options,
+		cfg.Logger,
 	)
 	m.hasBeenSet = cc.Scope != nil
 	return m
@@ -65,23 +75,16 @@ func (m Model) Render(s *strings.Builder) {
 	utils.Must(s.WriteString("\n"))
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var cmd tea.Cmd
+func (m Model) Update(msg tea.Msg) (w Model, cmd tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.input, _ = m.input.Update(msg)
-		return m, nil
 	case tea.KeyPressMsg:
-		switch msg.Code {
-		case tea.KeyEnter, tea.KeyTab:
+		k := msg.Key()
+		switch {
+		case key.Matches(k, controls.Keymap.Next):
+			m.hasBeenSet = true
 			if m.Value() == "new scope" {
 				m.newScope = m.input.CurrentInput()
-				cmd = func() tea.Msg {
-					return editorStartMsg{}
-				}
-				return m, cmd
-			} else {
-				m.input, cmd = m.input.Update(msg)
+				cmd = func() tea.Msg { return editorStartMsg{} }
 				return m, cmd
 			}
 		}
@@ -135,4 +138,4 @@ func (m Model) ShouldSkip(currentValue string) (shouldSkip bool) {
 	return shouldSkip || i == 0 // should skip if no scope options are configured
 }
 
-func (m Model) Ready() bool { return m.hasBeenSet } // this is optional
+func (m Model) Ready() bool { return m.hasBeenSet }

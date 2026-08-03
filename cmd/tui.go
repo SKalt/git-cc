@@ -226,9 +226,8 @@ func getLogFile() string {
 	}
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Update(msg tea.Msg) (w tea.Model, cmd tea.Cmd) {
 	logger.Debug("update", "msg", fmt.Sprintf("%#v", msg))
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		k := msg.Key()
@@ -241,26 +240,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, cmd
 		case key.Matches(k, controls.Keymap.Next):
-			m, _ = m.updateCurrentInput(msg)
+			cmds := make([]tea.Cmd, 2)
+			m, cmds[0] = m.updateCurrentInput(msg)
+
 			if m.currentComponent().Ready() {
-				m, cmd = m.advance()
+				m, cmds[1] = m.advance()
 			}
-			return m, cmd
-		default:
-			m, cmd = m.updateCurrentInput(msg)
+			return m, tea.Batch(cmds...)
 		}
 	case tea.WindowSizeMsg:
 		// ensure instances of tea.WindowSizeMsg reach all child-components
-		m.typeInput, _ = m.typeInput.Update(msg)
-		m.scopeInput, _ = m.scopeInput.Update(msg)
-		m.descriptionInput, _ = m.descriptionInput.Update(msg)
-		m.breakingChangeInput, cmd = m.breakingChangeInput.Update(msg)
+		cmds := make([]tea.Cmd, 4)
+		m.typeInput, cmds[0] = m.typeInput.Update(msg)
+		m.scopeInput, cmds[1] = m.scopeInput.Update(msg)
+		m.descriptionInput, cmds[2] = m.descriptionInput.Update(msg)
+		m.breakingChangeInput, cmds[3] = m.breakingChangeInput.Update(msg)
 		m.help.SetWidth(msg.Width)
 		m.height = msg.Height
-	default:
-		m, cmd = m.updateCurrentInput(msg)
+		return m, tea.Batch(cmds...)
 	}
-	return m, cmd
+	return m.updateCurrentInput(msg)
 }
 
 func (m model) renderCurrentComponent(s *strings.Builder) {
@@ -281,12 +280,13 @@ func (m model) View() (v tea.View) {
 	m.renderCurrentComponent(&s)
 	utils.Must(s.WriteString("\n"))
 	lines := strings.Count(s.String(), "\n")
-	padding := m.height - lines - 1
-	if padding < 0 {
-		padding = 0
-	}
+	padding := max(m.height-lines-1, 0)
 	utils.Must(s.WriteString(strings.Repeat("\n", padding)))
-	s.WriteString(controls.View(&m.help))
+	extra := []key.Binding{}
+	if k, ok := m.currentComponent().(help.KeyMap); ok {
+		extra = k.ShortHelp()
+	}
+	s.WriteString(controls.View(&m.help, extra...))
 	v.Content = s.String()
 	return v
 }

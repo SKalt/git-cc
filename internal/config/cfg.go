@@ -145,7 +145,7 @@ type Cfg struct {
 	HeaderMaxLength  int
 	EnforceMaxLength bool // TODO: derive from whether header_max_length present in the config
 	DryRun           bool
-	logger           *slog.Logger
+	Logger           *slog.Logger
 }
 
 func (c *Cfg) Clone() Cfg {
@@ -166,7 +166,7 @@ func (c *Cfg) Clone() Cfg {
 		HeaderMaxLength:  c.HeaderMaxLength,
 		EnforceMaxLength: c.EnforceMaxLength,
 		DryRun:           c.DryRun,
-		logger:           c.logger,
+		Logger:           c.Logger,
 	}
 }
 
@@ -191,8 +191,8 @@ func (original *Cfg) merge(other *Cfg) {
 	if other.HeaderMaxLength > 0 {
 		original.HeaderMaxLength = other.HeaderMaxLength
 	}
-	if original.logger != nil {
-		original.logger = other.logger
+	if other.Logger != nil {
+		original.Logger = other.Logger
 	}
 }
 
@@ -229,7 +229,7 @@ func ConstructDefaultFile(
 func (cfg *Cfg) ReadCfgFile(mustExist bool) (err error) {
 	configFile := cfg.ConfigFile
 	if configFile == "" {
-		configFile, err = FindCCConfigFile(cfg.gitRepoRoot, cfg.logger)
+		configFile, err = FindCCConfigFile(cfg.gitRepoRoot, cfg.Logger)
 		if err != nil {
 			if mustExist {
 				return err
@@ -256,7 +256,7 @@ func Init(dryRun bool, logger *slog.Logger) (*Cfg, error) {
 		// commit hash and one space before the commit message.
 		EnforceMaxLength: false,
 		DryRun:           dryRun,
-		logger:           logger,
+		Logger:           logger,
 	}
 	gitDir, err := getGitDir()
 	if err != nil {
@@ -285,7 +285,7 @@ func Init(dryRun bool, logger *slog.Logger) (*Cfg, error) {
 }
 
 // turn []string, map[string]string, or []map[string]string into an OrderedMap
-func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
+func toOrderedMap(raw any) (om *OrderedMap[string, string], err error) {
 	insert := func(om *OrderedMap[string, string], key string, value string) (err error) {
 		if _, present := om.Set(key, value); present {
 			err = fmt.Errorf("duplicate key: %s", key)
@@ -293,7 +293,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
 		return
 	}
 
-	handleMap := func(om *OrderedMap[string, string], m map[string]interface{}) (err error) {
+	handleMap := func(om *OrderedMap[string, string], m map[string]any) (err error) {
 		// alphabetize the keys to keep output deterministic
 		kvp := make([][2]string, 0, len(m))
 		for k, v := range m {
@@ -301,8 +301,7 @@ func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
 			case string:
 				kvp = append(kvp, [2]string{k, v2})
 			default:
-				err = fmt.Errorf("unexpected type: %+v", v2)
-				return err
+				return fmt.Errorf("unexpected type: %+v", v2)
 			}
 		}
 		sort.SliceStable(kvp, func(i, j int) bool {
@@ -313,11 +312,11 @@ func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
 				return err
 			}
 		}
-		return err
+		return nil
 	}
 
 	switch intermediate1 := raw.(type) {
-	case []interface{}:
+	case []any:
 		// guess the capacity to minimize allocations
 
 		om = NewOrderedMapWithCapacity[string, string](len(intermediate1))
@@ -337,14 +336,12 @@ func toOrderedMap(raw interface{}) (om *OrderedMap[string, string], err error) {
 			}
 		}
 		return
-	case map[string]interface{}:
+	case map[string]any:
 		om = NewOrderedMapWithCapacity[string, string](len(intermediate1))
 		if err = handleMap(om, intermediate1); err != nil {
 			return
 		}
 		return
-	case *orderedmap.OrderedMap[string, interface{}]:
-		panic("..") // FIXME
 	default:
 		return nil, fmt.Errorf("unexpected format: %+v => %+v", intermediate1, reflect.TypeOf(intermediate1).Name())
 	}
@@ -377,7 +374,7 @@ func parseCCConfigurationFile(configFile string) (*Cfg, error) {
 	default:
 		// all file extensions should already be known when searching for config
 		// files
-		panic("Unsupported config file type: " + configFile)
+		return nil, fmt.Errorf("unsupported config file type: %q", configFile)
 	}
 
 	var cfg Cfg

@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"text/template"
 	"time"
+
+	"github.com/skalt/git-cc/internal/utils"
 )
 
 const licensePath = "./licenses/COMMERCIAL.template.md"
@@ -64,12 +66,6 @@ func main() {
 	opts := parseArgs()
 	// read the license template
 	name := path.Base(licensePath)
-	tpl, err := template.New(name).ParseFiles(licensePath)
-	if err != nil {
-		panic(err)
-	}
-	err = tpl.Execute(os.Stdout, opts)
-	if err != nil {
-		panic(err)
-	}
+	tpl := utils.Must(template.New(name).ParseFiles(licensePath))
+	utils.Check(tpl.Execute(os.Stdout, opts))
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"log/slog"
 	"strings"
 
 	"charm.land/bubbles/v2/help"
@@ -23,8 +24,9 @@ type ListItem [2]string
 func (i ListItem) FilterValue() string { return i[0] }
 
 type Model struct {
-	list  list.Model
-	value string
+	list   list.Model
+	value  string
+	logger *slog.Logger
 }
 
 // FullHelp implements [help.KeyMap].
@@ -61,7 +63,9 @@ func NewModel(
 	title string,
 	value string,
 	options []ListItem,
+	logger *slog.Logger,
 ) (m Model) {
+	m.logger = logger
 	optWidth := 0
 	for _, opt := range options {
 		if optWidth < len(opt[0]) {
@@ -71,23 +75,20 @@ func NewModel(
 	delegate := newSelectDelegate(optWidth + 1)
 	w := 80
 	h := 24
-	l := list.New(toListItems(options), delegate, w, maxHeight(h))
-	l.Help = help.New()
-	l.SetShowTitle(false)
-	l.SetShowStatusBar(false)
-	l.SetShowPagination(true)
-	l.SetShowHelp(false)
-	l.SetShowFilter(true)
-	l.SetFilteringEnabled(true)
-	l.Title = title // this gets hidden when filtering, so we have to re-render it
-	l.InfiniteScrolling = true
-	l.SetFilterText(value)
-	l.SetFilterState(list.Filtering)
-	input := &l.FilterInput
-	input.Placeholder = "type to select"
-	input.Prompt = " "            // to align with the list column
-	input.ShowSuggestions = false // since the filtered list already provides suggestions
-	return Model{list: l, value: value}
+	m.list = list.New(toListItems(options), delegate, w, maxHeight(h))
+	m.list.SetShowTitle(false)
+	m.list.SetShowStatusBar(false)
+	m.list.SetShowPagination(true)
+	m.list.SetShowHelp(false)
+	m.list.SetShowFilter(true)
+	m.list.SetFilteringEnabled(true)
+	m.list.Title = title // this gets hidden when filtering, so we have to re-render it
+	m.list.SetFilterText(value)
+	m.list.SetFilterState(list.Filtering)
+	m.list.FilterInput.Placeholder = "type to select"
+	m.list.FilterInput.Prompt = " "            // to align with the list column
+	m.list.FilterInput.ShowSuggestions = false // since the filtered list already provides suggestions
+	return m
 }
 
 func (m *Model) Focus() tea.Cmd { return m.list.FilterInput.Focus() }
@@ -110,9 +111,10 @@ func (m Model) SetErr(err error) Model {
 // Value returns the selected item's title, or "" if nothing is selected.
 // This will never return an invalid non-empty string.
 func (m Model) Value() (value string) {
-	selected := m.list.SelectedItem().(ListItem)[0]
-	if m.value == selected {
-		value = selected
+	selected, ok := m.list.SelectedItem().(ListItem)
+	m.logger.Debug("value", "selected", selected, "ok", ok)
+	if ok && m.value == selected[0] {
+		value = selected[0]
 	}
 	return value
 }
@@ -193,11 +195,10 @@ func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	}
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var cmd tea.Cmd
-	switch msg := msg.(type) {
+func (m Model) Update(msg tea.Msg) (w Model, cmd tea.Cmd) {
+	switch specific := msg.(type) {
 	case tea.KeyPressMsg:
-		k := msg.Key()
+		k := specific.Key()
 		switch {
 		case key.Matches(k, controls.Keymap.Down):
 			m.list.CursorDown()
@@ -208,22 +209,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(k, controls.Keymap.Next):
 			m.value = m.list.SelectedItem().(ListItem)[0]
 			return m, nil
-		default:
-			m.list, cmd = m.list.Update(msg)
-			return m, cmd
 		}
-	case tea.MouseWheelMsg:
-		m.list, cmd = m.list.Update(msg)
-		return m, cmd
 	case tea.WindowSizeMsg:
-		h := maxHeight(msg.Height)
-		m.list.SetSize(msg.Width, h)
-		m.list.Help.SetWidth(msg.Width)
-		return m, cmd
-	default:
-		m.list, cmd = m.list.Update(msg)
+		h := maxHeight(specific.Height)
+		m.list.SetSize(specific.Width, h)
+		m.list.Help.SetWidth(specific.Width)
 		return m, cmd
 	}
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
 }
 
 func wrapLine(left uint, text string, right int, style lipgloss.Style) string {
@@ -235,7 +229,7 @@ func wrapLine(left uint, text string, right int, style lipgloss.Style) string {
 	return result
 }
 
-func (m Model) Render(s io.StringWriter) {
+func (m Model) Render(s *strings.Builder) {
 	utils.Must(s.WriteString(m.list.Title + "\n"))
 	utils.Must(s.WriteString(m.list.View()))
 }

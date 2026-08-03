@@ -1,8 +1,11 @@
 package type_selector
 
 import (
+	"log/slog"
 	"strings"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/skalt/git-cc/internal/config"
 	"github.com/skalt/git-cc/internal/controls"
@@ -12,10 +15,20 @@ import (
 )
 
 type Model struct {
-	input single_select.Model
+	input  single_select.Model
+	logger *slog.Logger
 }
 
-var _ controls.InputComponent = Model{}
+// FullHelp implements [help.KeyMap].
+func (m Model) FullHelp() [][]key.Binding { return m.input.FullHelp() }
+
+// ShortHelp implements [help.KeyMap].
+func (m Model) ShortHelp() []key.Binding { return m.input.ShortHelp() }
+
+var (
+	_ controls.InputComponent = Model{}
+	_ help.KeyMap             = Model{}
+)
 
 func NewModel(cc *parser.CC, cfg *config.Cfg) (m Model) {
 	opts := make([]single_select.ListItem, 0, cfg.CommitTypes.Len())
@@ -23,7 +36,7 @@ func NewModel(cc *parser.CC, cfg *config.Cfg) (m Model) {
 		opts = append(opts, single_select.ListItem(o))
 	}
 	m.input = single_select.NewModel(
-		config.Faint("select a commit type: "), cc.Type, opts,
+		config.Faint("select a commit type: "), cc.Type, opts, cfg.Logger,
 	)
 	return m
 }

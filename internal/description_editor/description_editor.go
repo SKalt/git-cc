@@ -99,9 +99,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.input.SetWidth(msg.Width)
 		return m, cmd
 	default:
-		m.input, _ = m.input.Update(msg)
-		cmd = m.input.Focus()
-		return m, cmd
+		cmds := make([]tea.Cmd, 2)
+		m.input, cmds[0] = m.input.Update(msg)
+		cmds[1] = m.input.Focus()
+		return m, tea.Batch(cmds...)
 	}
 }
 
