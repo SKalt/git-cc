@@ -9,8 +9,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"github.com/muesli/reflow/wordwrap"
-	"github.com/muesli/termenv"
+	"charm.land/lipgloss/v2"
 	"github.com/skalt/git-cc/internal/config"
 	"github.com/skalt/git-cc/internal/controls"
 	"github.com/skalt/git-cc/internal/utils"
@@ -20,7 +19,6 @@ import (
 const header = "A short description of the changes:"
 
 type Model struct {
-	prefix      string
 	input       textinput.Model
 	lengthLimit int
 }
@@ -77,7 +75,7 @@ func viewCounter(m Model) string {
 	} else if current == m.lengthLimit {
 		return view // render in a warning color termenv.String(view).
 	} else { // render in an alert color
-		return termenv.String(view).Underline().String()
+		return lipgloss.NewStyle().Underline(true).Render(view)
 	}
 }
 
@@ -107,7 +105,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) Render(s *strings.Builder) {
-	utils.Must(s.WriteString(wordwrap.String(config.Faint(header+" "+viewCounter(m)), m.input.Width())))
+	style := lipgloss.NewStyle().Width(m.input.Width()).Faint(true)
+	utils.Must(s.WriteString(style.Render(header, viewCounter(m))))
 	utils.Must(s.WriteString("\n\n"))
 	val := m.input.View()
 	utils.Must(s.WriteString(val))

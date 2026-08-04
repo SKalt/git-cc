@@ -12,8 +12,6 @@ import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/muesli/reflow/indent"
-	"github.com/muesli/reflow/wordwrap"
 	"github.com/skalt/git-cc/internal/controls"
 	"github.com/skalt/git-cc/internal/utils"
 )
@@ -30,14 +28,11 @@ type Model struct {
 }
 
 // FullHelp implements [help.KeyMap].
-func (m Model) FullHelp() [][]key.Binding {
-	return [][]key.Binding{m.ShortHelp()}
-}
+func (m Model) FullHelp() [][]key.Binding { return [][]key.Binding{m.ShortHelp()} }
 
 // ShortHelp implements [help.KeyMap].
 func (m Model) ShortHelp() (keys []key.Binding) {
-	keys = append(keys, controls.Keymap.Up, controls.Keymap.Down)
-	return keys
+	return append(keys, controls.Keymap.Up, controls.Keymap.Down)
 }
 
 var _ help.KeyMap = Model{}
@@ -65,12 +60,11 @@ func NewModel(
 	options []ListItem,
 	logger *slog.Logger,
 ) (m Model) {
-	m.logger = logger
+	m.logger = logger.With("component", "single_select")
+	m.value = value
 	optWidth := 0
 	for _, opt := range options {
-		if optWidth < len(opt[0]) {
-			optWidth = len(opt[0])
-		}
+		optWidth = max(optWidth, len(opt[0]))
 	}
 	delegate := newSelectDelegate(optWidth + 1)
 	w := 80
@@ -88,6 +82,7 @@ func NewModel(
 	m.list.FilterInput.Placeholder = "type to select"
 	m.list.FilterInput.Prompt = " "            // to align with the list column
 	m.list.FilterInput.ShowSuggestions = false // since the filtered list already provides suggestions
+	m.logger.Debug("init", "value", m.Value())
 	return m
 }
 
@@ -135,7 +130,7 @@ type selectDelegate struct {
 }
 
 type selectDelegateStyles struct {
-	selectedTitle, selectedDesc, normalTitle, normalDesc lipgloss.Style
+	selected, normal lipgloss.Style
 }
 
 func newSelectDelegate(optWidth int) selectDelegate {
@@ -144,10 +139,8 @@ func newSelectDelegate(optWidth int) selectDelegate {
 		spacing:  0,
 		optWidth: optWidth,
 		styles: selectDelegateStyles{
-			selectedTitle: lipgloss.NewStyle().Bold(true).Underline(true),
-			selectedDesc:  lipgloss.NewStyle().Underline(true),
-			normalTitle:   lipgloss.NewStyle().Faint(true),
-			normalDesc:    lipgloss.NewStyle().Faint(true),
+			selected: lipgloss.NewStyle().Underline(true).Bold(true),
+			normal:   lipgloss.NewStyle().Faint(true),
 		},
 	}
 }
@@ -174,25 +167,27 @@ func (d selectDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	isSelected := index == m.Index()
 	i := item.(ListItem)
 	title, desc := i[0], i[1]
-	desc = strings.Repeat(" ", d.optWidth-len(title)) + desc
 
 	leftGutter := 3 // "   " or " > "
-	leftColumn := leftGutter + 1
-	rightColumn := m.Width() - leftColumn
+	leftColumn := d.optWidth
+	rightColumn := m.Width() - leftGutter - leftColumn - 1
 
+	var style, titleStyle lipgloss.Style
+	var gutter string
 	if isSelected {
-		gutter := " > "
-		styledTitle := d.styles.selectedTitle.Render(title)
-		utils.Must(fmt.Fprint(w, gutter+styledTitle))
-		wrappedDesc := wrapLine(uint(leftColumn), desc, rightColumn, d.styles.selectedDesc)
-		utils.Must(fmt.Fprint(w, wrappedDesc))
+		style = d.styles.selected
+		titleStyle = style.Bold(true)
+		gutter = ">"
 	} else {
-		gutter := "   "
-		styledTitle := d.styles.normalTitle.Render(title)
-		utils.Must(fmt.Fprint(w, gutter+styledTitle))
-		wrappedDesc := wrapLine(uint(leftColumn), desc, rightColumn, d.styles.normalDesc)
-		utils.Must(fmt.Fprint(w, wrappedDesc))
+		style = d.styles.normal
+		gutter = " "
 	}
+	str := lipgloss.JoinHorizontal(lipgloss.Top,
+		style.UnsetUnderline().Width(leftGutter).PaddingLeft(1).PaddingRight(1).Render(gutter),
+		titleStyle.Width(d.optWidth).Render(title),
+		style.UnsetBold().Width(rightColumn).Render(desc),
+	)
+	utils.Must(fmt.Fprint(w, str))
 }
 
 func (m Model) Update(msg tea.Msg) (w Model, cmd tea.Cmd) {
@@ -218,15 +213,6 @@ func (m Model) Update(msg tea.Msg) (w Model, cmd tea.Cmd) {
 	}
 	m.list, cmd = m.list.Update(msg)
 	return m, cmd
-}
-
-func wrapLine(left uint, text string, right int, style lipgloss.Style) string {
-	lines := strings.SplitN(wordwrap.String(text, right), "\n", 2)
-	result := style.Render(lines[0])
-	if len(lines) > 1 {
-		result += "\n" + indent.String(style.Render(lines[1]), left)
-	}
-	return result
 }
 
 func (m Model) Render(s *strings.Builder) {

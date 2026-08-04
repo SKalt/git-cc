@@ -188,7 +188,6 @@ func redoMessage(cmd *cobra.Command) (err error) {
 	}
 	commitMessagePath := config.GetCommitMessageFile()
 	preExisting, err := os.ReadFile(commitMessagePath)
-	// TODO: ignore commented lines in git-commit file
 	if err != nil {
 		return fmt.Errorf("unable to read file %q: %w", commitMessagePath, err)
 	}
@@ -196,17 +195,19 @@ func redoMessage(cmd *cobra.Command) (err error) {
 	empty := true
 	message := make([]byte, 0, len(preExisting))
 	for line := range strings.SplitSeq(string(preExisting), "\n") {
-		if !strings.HasPrefix(strings.TrimLeft(line, " \t\r\n"), "#") {
-			empty = false
-			message = append(message, []byte(line)...)
-			message = append(message, byte('\n'))
+		trimmed := strings.TrimLeft(line, " \t\r\n")
+		if strings.HasPrefix(trimmed, "#") {
+			continue
 		}
+		empty = false
+		message = append(message, []byte(line)...)
+		message = append(message, byte('\n'))
 	}
 	if empty {
 		return fmt.Errorf("empty commit message: %q", commitMessagePath)
 	}
 
-	utils.Check(flags.Set("message", string(preExisting)))
+	utils.Check(flags.Set("message", string(message)))
 	return
 }
 

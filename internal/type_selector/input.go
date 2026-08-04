@@ -31,6 +31,7 @@ var (
 )
 
 func NewModel(cc *parser.CC, cfg *config.Cfg) (m Model) {
+	m.logger = cfg.Logger.With("name", "type_selector")
 	opts := make([]single_select.ListItem, 0, cfg.CommitTypes.Len())
 	for _, o := range config.Items(cfg.CommitTypes) {
 		opts = append(opts, single_select.ListItem(o))
@@ -56,14 +57,15 @@ func (m Model) Update(msg tea.Msg) (w Model, cmd tea.Cmd) {
 }
 
 // whether this component should be skipped (during backtracking for error correction?)
-func (m Model) ShouldSkip() (shouldSkip bool) {
+func (m Model) Ready() bool {
 	val := m.Value()
+	logger := m.logger.With("value", val)
 	for opt := range m.input.Options() {
-		if shouldSkip = opt == val; shouldSkip {
-			break
+		if opt == val {
+			logger.Debug("ready")
+			return true
 		}
 	}
-	return shouldSkip
+	logger.Debug("not ready")
+	return false
 }
-
-func (m Model) Ready() bool { return m.Value() != "" }

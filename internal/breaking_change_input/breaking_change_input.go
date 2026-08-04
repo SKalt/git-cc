@@ -7,7 +7,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
+	"github.com/skalt/git-cc/internal/config"
 	"github.com/skalt/git-cc/internal/controls"
 	"github.com/skalt/git-cc/internal/utils"
 	"github.com/skalt/git-cc/pkg/parser"
@@ -50,9 +50,12 @@ func NewModel(cc *parser.CC) (m Model) {
 	if len(footers) > 0 {
 		value = strings.Split(footers[0], ": ")[1]
 	}
+	if cc.BreakingChange && value == "" {
+		value = "..."
+	}
 	m.input = textinput.New()
 	m.input.SetValue(value)
-	m.input.Prompt = lipgloss.NewStyle().Faint(true).Render("BREAKING CHANGES: ")
+	m.input.Prompt = config.Faint("BREAKING CHANGES: ")
 	m.input.Placeholder = "if any."
 	m.input.Focus()
 	return m

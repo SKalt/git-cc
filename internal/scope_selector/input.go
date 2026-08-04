@@ -3,6 +3,7 @@ package scope_selector
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 
 	"charm.land/bubbles/v2/help"
@@ -23,6 +24,7 @@ type Model struct {
 	newScope          string
 	copiedToClipboard bool
 	hasBeenSet        bool
+	logger            *slog.Logger
 }
 
 // FullHelp implements [help.KeyMap].
@@ -51,11 +53,12 @@ func makeOptions(options *config.OrderedMap[string, string]) (items []single_sel
 
 func NewModel(cc *parser.CC, cfg config.Cfg) (m Model) {
 	options := makeOptions(cfg.Scopes)
+	m.logger = cfg.Logger.With("name", "scope_selector")
 	m.input = single_select.NewModel(
 		config.Faint("select a scope:"),
 		utils.Coalesce(cc.Scope, ""),
 		options,
-		cfg.Logger,
+		m.logger,
 	)
 	m.hasBeenSet = cc.Scope != nil
 	return m
@@ -127,11 +130,12 @@ func (m Model) Update(msg tea.Msg) (w Model, cmd tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) ShouldSkip(currentValue string) (shouldSkip bool) {
+// TODO: deprecated?
+func (m Model) ShouldSkip() (shouldSkip bool) {
 	i := 0
 	for opt := range m.input.Options() {
 		i += 1
-		if shouldSkip = currentValue == opt; shouldSkip {
+		if shouldSkip = m.Value() == opt; shouldSkip {
 			break
 		}
 	}

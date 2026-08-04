@@ -16,8 +16,8 @@ import (
 	"sort"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	toml "github.com/BurntSushi/toml"
-	"github.com/muesli/termenv"
 	"github.com/skalt/git-cc/internal/utils"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	yaml "gopkg.in/yaml.v3"
@@ -127,8 +127,11 @@ func angularCommitTypes() *OrderedMap[string, string] {
 }
 
 func Faint(s string) string {
+	if os.Getenv("NO_COLOR") != "" {
+		return s
+	}
 	// FIXME: this should use lipgloss
-	return termenv.String(s).Faint().String()
+	return lipgloss.NewStyle().Faint(true).Render(s)
 }
 
 type Cfg struct {

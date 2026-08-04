@@ -10,7 +10,6 @@ import (
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	"github.com/skalt/git-cc/internal/breaking_change_input"
 	"github.com/skalt/git-cc/internal/config"
 	"github.com/skalt/git-cc/internal/controls"
@@ -29,7 +28,6 @@ const ( // the order of the components
 	shortDescriptionIndex
 	breakingChangeIndex
 	// body omitted -- performed by GIT_EDITOR
-	nIndices // the number of indices
 )
 
 var (
@@ -91,17 +89,13 @@ func (m model) contextValue() string { return utils.Render(m.renderContextValue)
 func (m model) descriptionValue() string {
 	return m.descriptionInput.Value()
 }
-func (m model) breakingChangeValue() string {
-	return m.breakingChangeInput.Value()
+func (m model) breakingChangeValue() (val string) {
+	val = m.breakingChangeInput.Value()
+	logger.Debug("breaking_change", "value", val)
+	return val
 }
 
-func (m model) withoutBreakingChange() (w model) {
-	w = m // clone by value
-	w.breakingChangeInput = breaking_change_input.Model{}
-	return w
-}
-
-func (m model) renderValue(s *strings.Builder) {
+func (m model) renderValueExceptFooters(s *strings.Builder) {
 	for _, p := range [...]string{
 		m.contextValue(), m.descriptionValue(),
 		"\n",
@@ -110,6 +104,10 @@ func (m model) renderValue(s *strings.Builder) {
 	} {
 		utils.Must(s.WriteString(p))
 	}
+}
+
+func (m model) renderValue(s *strings.Builder) {
+	m.renderValueExceptFooters(s)
 	if breakingChange := m.breakingChangeValue(); breakingChange != "" {
 		// TODO: handle multiple breaking change footers(?)
 		utils.Must(fmt.Fprintf(s, "\nBREAKING CHANGE: %s\n", breakingChange))
@@ -138,7 +136,7 @@ func initLogger() {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.RequestBackgroundColor
+	return tea.Batch(tea.RequestBackgroundColor, tea.RequestWindowSize)
 }
 
 func (m model) currentComponent() controls.InputComponent {
@@ -158,15 +156,6 @@ func initialModel(cc *parser.CC, cfg *config.Cfg) model {
 	scopeModel := scope_selector.NewModel(cc, *cfg)
 	descModel := description_editor.NewModel(cc, cfg.HeaderMaxLength, cfg.EnforceMaxLength)
 	bcModel := breaking_change_input.NewModel(cc)
-	breakingChanges := ""
-	if cc.BreakingChange {
-		for _, footer := range cc.Footers {
-			result, err := parser.BreakingChange([]rune(footer))
-			if err == nil {
-				breakingChanges += string(result.Remaining) + "\n"
-			}
-		}
-	}
 	m := model{
 		typeInput:           typeModel,
 		scopeInput:          scopeModel,
@@ -176,7 +165,7 @@ func initialModel(cc *parser.CC, cfg *config.Cfg) model {
 		help:                help.New(),
 	}
 	if cc.Body != nil {
-		m.remainingBody = *cc.Body
+		m.remainingBody = strings.Trim(*cc.Body, "\t\r\n ")
 	}
 	m, _ = m.advance() // hmm, this doesn't seem right
 	m.descriptionInput = m.descriptionInput.SetPrefix(m.contextValue())
@@ -200,13 +189,17 @@ func (m model) updateCurrentInput(msg tea.Msg) (w model, cmd tea.Cmd) {
 }
 
 func (m model) shouldSkip() (shouldSkip bool) {
-	return m.currentComponent().Ready()
+	shouldSkip = m.currentComponent().Ready()
+	logger.Info("advancing", "component", m.viewing, "skip", shouldSkip)
+	return shouldSkip
 }
 
 func (m model) advance() (model, tea.Cmd) {
 	for m.viewing < breakingChangeIndex && m.shouldSkip() {
-		logger.Debug("advance", "index", m.viewing)
-		m.viewing++
+		prev := m.viewing
+		next := m.viewing + 1
+		m.viewing = next
+		logger.Debug("advanced", "move", fmt.Sprintf("%d -> %d", prev, next))
 	}
 	if m.viewing == breakingChangeIndex && m.shouldSkip() {
 		return m, tea.Quit
@@ -229,6 +222,8 @@ func getLogFile() string {
 func (m model) Update(msg tea.Msg) (w tea.Model, cmd tea.Cmd) {
 	logger.Debug("update", "msg", fmt.Sprintf("%#v", msg))
 	switch msg := msg.(type) {
+	case tea.BackgroundColorMsg:
+		// panic(fmt.Errorf("TODO: %+v", msg))
 	case tea.KeyPressMsg:
 		k := msg.Key()
 		switch {
@@ -263,13 +258,14 @@ func (m model) Update(msg tea.Msg) (w tea.Model, cmd tea.Cmd) {
 }
 
 func (m model) renderCurrentComponent(s *strings.Builder) {
-	style := lipgloss.NewStyle().Faint(true).Align(lipgloss.Left).PaddingRight(0)
 	switch m.viewing {
 	case breakingChangeIndex:
 		buf := strings.Builder{}
-		utils.Must(fmt.Fprintf(s, "%#v", style))
-		m.withoutBreakingChange().renderValue(&buf) // !!
-		utils.Must(s.WriteString((buf.String())))
+		m.renderValueExceptFooters(&buf)
+		p := strings.Trim(buf.String(), "\n")
+		q := config.Faint(p) + "\n\n"
+		logger.Debug("breaking_change", "prefix", p, "faint", q)
+		utils.Must(s.WriteString(q))
 	}
 	m.currentComponent().Render(s)
 }

@@ -8,15 +8,12 @@ require (
 	charm.land/lipgloss/v2 v2.0.0
 	github.com/BurntSushi/toml v1.2.1
 	github.com/atotto/clipboard v0.1.4
-	github.com/muesli/reflow v0.3.0
-	github.com/muesli/termenv v0.13.0
 	github.com/spf13/cobra v1.9.1
 	github.com/wk8/go-ordered-map/v2 v2.1.5
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/charmbracelet/colorprofile v0.4.2 // indirect
@@ -33,7 +30,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.20 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
