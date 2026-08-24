@@ -69,7 +69,7 @@ func NewModel(
 	}
 	input.SetSuggestions(suggestions)
 	input.SetValue(value)
-	input.SetCursor(len(value))
+	input.CursorEnd()
 	input.Focus()
 
 	return Model{

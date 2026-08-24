@@ -53,8 +53,7 @@ var keymap = struct {
 func NewModel(lengthLimit int, value string, enforced bool) Model {
 	input := textinput.New()
 	input.SetValue(value)
-	input.SetCursor(len(value))
-	// input.Cursor = len(value)
+	input.CursorEnd()
 	input.Prompt = config.Faint(prePrompt)
 	if enforced {
 		input.CharLimit = lengthLimit
@@ -69,7 +68,7 @@ func NewModel(lengthLimit int, value string, enforced bool) Model {
 
 // a styled length-counter, e.g. ( 9/80)
 func viewCounter(m Model) string {
-	current := len(m.prefix) + len(m.input.Value())
+	current := len([]rune(m.prefix)) + len([]rune(m.input.Value()))
 	paddedFormat := fmt.Sprintf(
 		"(%%%dd/%d)", len(fmt.Sprintf("%d", m.lengthLimit)), m.lengthLimit,
 	)
