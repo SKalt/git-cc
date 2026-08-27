@@ -46,7 +46,7 @@ func generateShellCompletion(cmd *cobra.Command, args []string) {
 }
 
 // put a manpage in the first available location on the manpath
-func generateManPage(cmd *cobra.Command, args []string) {
+func generateManPage(cmd *cobra.Command, _ []string) {
 	root := cmd.Root()
 	header := &doc.GenManHeader{
 		Title:   "GIT-CC",
@@ -57,10 +57,10 @@ func generateManPage(cmd *cobra.Command, args []string) {
 	process.Stdout = &out
 	err := process.Run()
 	if err != nil {
-		log.Fatalf("unable to deterimine manpath: %+v", err)
+		log.Fatalf("unable to determine manpath: %+v", err)
 	}
-	manpath := strings.Split(out.String(), ":")
-	for _, place := range manpath {
+	manpath := strings.SplitSeq(out.String(), ":")
+	for place := range manpath {
 		err = doc.GenManTree(root, header, path.Join(place, "man1"))
 		if err == nil {
 			break
@@ -68,6 +68,7 @@ func generateManPage(cmd *cobra.Command, args []string) {
 	}
 	if err != nil {
 		log.Fatal(err)
-	} // else we're done; Cmd#Run handles exiting 0.
+	}
+	// else we're done; [exec.Cmd.Run] handles exiting 0.
 	// IDEA: consider adding a --dry-run option, perhaps printing to stdout.
 }
